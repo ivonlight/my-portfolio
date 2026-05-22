@@ -1,0 +1,1531 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>投資組合監控儀表板</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #08080e;
+  --surface: #0f0f18;
+  --surface2: #14141f;
+  --border: #1c1c2e;
+  --text: #e4e4f0;
+  --muted: #52527a;
+  --accent: #7c6af7;
+  --green: #3ecf8e;
+  --red: #f05c5c;
+  --yellow: #f0c05c;
+  --blue: #5cb8f0;
+  --mono: 'DM Mono', monospace;
+  --sans: 'Noto Sans TC', sans-serif;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); color:var(--text); font-family:var(--sans); min-height:100vh; overflow-x:hidden; }
+body::before {
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:998; opacity:.35;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+}
+
+/* ── LOGIN ── */
+#lockScreen {
+  position:fixed; inset:0; background:var(--bg); z-index:9999;
+  display:flex; align-items:center; justify-content:center;
+}
+#lockScreen.hidden { display:none; }
+.lock-box {
+  display:flex; flex-direction:column; align-items:center; gap:1.75rem;
+  animation:fadeUp .5s ease both;
+}
+.lock-logo {
+  font-family:var(--mono); font-size:.65rem; letter-spacing:.25em;
+  text-transform:uppercase; color:var(--muted); text-align:center;
+}
+.lock-logo b { display:block; font-family:var(--sans); font-size:1.4rem; font-weight:700; color:var(--text); letter-spacing:-.02em; margin-top:.4rem; }
+.pin-dots { display:flex; gap:.75rem; align-items:center; }
+.pin-dot {
+  width:14px; height:14px; border-radius:50%;
+  border:2px solid var(--border); background:transparent; transition:all .2s;
+}
+.pin-dot.filled { background:var(--accent); border-color:var(--accent); }
+.pin-dot.error { background:var(--red); border-color:var(--red); animation:shake .3s ease; }
+.pin-pad { display:grid; grid-template-columns:repeat(3,1fr); gap:.6rem; width:220px; }
+.pin-key {
+  background:var(--surface); border:1px solid var(--border); border-radius:10px;
+  font-family:var(--mono); font-size:1.2rem; color:var(--text);
+  padding:.85rem; cursor:pointer; transition:all .15s; text-align:center; user-select:none;
+}
+.pin-key:hover { background:var(--surface2); border-color:var(--accent); color:var(--accent); }
+.pin-key:active { transform:scale(.94); }
+.pin-key.del { font-size:.8rem; color:var(--muted); }
+.pin-key.zero { grid-column:2; }
+.lock-hint { font-family:var(--mono); font-size:.62rem; color:var(--muted); }
+/* sector filter */
+.sfbtn {
+  font-family:var(--mono); font-size:.62rem; letter-spacing:.06em;
+  padding:.35rem .85rem; border-radius:100px; border:1px solid var(--border);
+  background:var(--surface); color:var(--muted); cursor:pointer; transition:all .18s;
+}
+.sfbtn:hover { border-color:var(--accent); color:var(--accent); }
+.sfbtn.active { background:rgba(124,106,247,.12); border-color:rgba(124,106,247,.4); color:var(--accent); }
+/* ── LOGIN ── */
+#lockScreen {
+  position:fixed; inset:0; background:var(--bg); z-index:9999;
+  display:flex; align-items:center; justify-content:center;
+}
+#lockScreen.hidden { display:none; }
+.lock-box {
+  display:flex; flex-direction:column; align-items:center; gap:1.75rem;
+  animation:fadeUp .5s ease both;
+}
+.lock-logo {
+  font-family:var(--mono); font-size:.65rem; letter-spacing:.25em;
+  text-transform:uppercase; color:var(--muted); text-align:center;
+}
+.lock-logo b { display:block; font-family:var(--sans); font-size:1.4rem; font-weight:700; color:var(--text); letter-spacing:-.02em; margin-top:.4rem; }
+.pin-dots { display:flex; gap:.75rem; align-items:center; }
+.pin-dot {
+  width:14px; height:14px; border-radius:50%;
+  border:2px solid var(--border); background:transparent; transition:all .2s;
+}
+.pin-dot.filled { background:var(--accent); border-color:var(--accent); }
+.pin-dot.error { background:var(--red); border-color:var(--red); animation:shake .3s ease; }
+.pin-pad { display:grid; grid-template-columns:repeat(3,1fr); gap:.6rem; width:220px; }
+.pin-key {
+  background:var(--surface); border:1px solid var(--border); border-radius:10px;
+  font-family:var(--mono); font-size:1.2rem; color:var(--text);
+  padding:.85rem; cursor:pointer; transition:all .15s; text-align:center; user-select:none;
+}
+.pin-key:hover { background:var(--surface2); border-color:var(--accent); color:var(--accent); }
+.pin-key:active { transform:scale(.94); }
+.pin-key.del { font-size:.8rem; color:var(--muted); }
+.pin-key.zero { grid-column:2; }
+.lock-hint { font-family:var(--mono); font-size:.62rem; color:var(--muted); }
+@keyframes shake {
+  0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)}
+}
+
+/* ── HEADER ── */
+header {
+  padding:1.75rem 2.5rem 1.25rem;
+  border-bottom:1px solid var(--border);
+  display:flex; align-items:flex-end; justify-content:space-between;
+  position:sticky; top:0; background:rgba(8,8,14,.92);
+  backdrop-filter:blur(16px); z-index:100;
+}
+.header-left sup { font-family:var(--mono); font-size:.6rem; color:var(--accent); letter-spacing:.15em; text-transform:uppercase; display:block; margin-bottom:.35rem; }
+.header-left h1 { font-size:1.4rem; font-weight:700; letter-spacing:-.025em; }
+.header-right { display:flex; align-items:center; gap:1.25rem; }
+.update-time { font-family:var(--mono); font-size:.65rem; color:var(--muted); text-align:right; }
+.update-time b { color:var(--text); display:block; margin-top:.15rem; font-size:.75rem; }
+
+/* ── TAB NAV ── */
+.tab-nav {
+  display:flex; gap:.25rem; padding:.75rem 2.5rem;
+  border-bottom:1px solid var(--border); background:var(--bg);
+  position:sticky; top:73px; z-index:99;
+}
+.tab-btn {
+  font-family:var(--mono); font-size:.65rem; letter-spacing:.1em; text-transform:uppercase;
+  padding:.4rem 1rem; border-radius:6px; border:1px solid transparent;
+  cursor:pointer; transition:all .2s; background:none; color:var(--muted);
+}
+.tab-btn.active { background:rgba(124,106,247,.12); border-color:rgba(124,106,247,.35); color:var(--accent); }
+.tab-btn:hover:not(.active) { color:var(--text); border-color:var(--border); }
+
+/* ── MAIN ── */
+main { padding:2rem 2.5rem; max-width:1440px; margin:0 auto; }
+.tab-panel { display:none; }
+.tab-panel.active { display:block; }
+
+/* ── SUMMARY STRIP ── */
+.summary-strip {
+  display:grid; grid-template-columns:repeat(5,1fr); gap:.75rem; margin-bottom:2rem;
+}
+.s-card {
+  background:var(--surface); border:1px solid var(--border); border-radius:10px;
+  padding:1rem 1.25rem; position:relative; overflow:hidden;
+  animation:fadeUp .4s ease both;
+}
+.s-card::after {
+  content:''; position:absolute; top:0; left:0; right:0; height:2px;
+  background:linear-gradient(90deg, var(--accent), transparent);
+}
+.s-card.g::after { background:linear-gradient(90deg,var(--green),transparent); }
+.s-card.r::after { background:linear-gradient(90deg,var(--red),transparent); }
+.s-card.y::after { background:linear-gradient(90deg,var(--yellow),transparent); }
+.s-card.b::after { background:linear-gradient(90deg,var(--blue),transparent); }
+.s-label { font-family:var(--mono); font-size:.58rem; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); margin-bottom:.5rem; }
+.s-val { font-family:var(--mono); font-size:1.3rem; font-weight:500; letter-spacing:-.025em; line-height:1; }
+.s-sub { font-family:var(--mono); font-size:.7rem; margin-top:.3rem; }
+.pos { color:var(--green); } .neg { color:var(--red); } .neu { color:var(--yellow); } .blu { color:var(--blue); }
+
+/* ── SECTION HEADER ── */
+.sec-hd {
+  display:flex; align-items:center; gap:.75rem; margin:2rem 0 .75rem;
+}
+.sec-hd h2 { font-family:var(--mono); font-size:.6rem; letter-spacing:.2em; text-transform:uppercase; color:var(--muted); white-space:nowrap; }
+.sec-hd .ln { flex:1; height:1px; background:var(--border); }
+.sec-hd .bdg { font-family:var(--mono); font-size:.58rem; padding:.2rem .6rem; border-radius:100px; border:1px solid var(--border); color:var(--muted); white-space:nowrap; }
+
+/* ── STOCK TABLE ── */
+.stk-table { width:100%; border-collapse:collapse; font-size:.78rem; }
+.stk-table th {
+  text-align:left; padding:.55rem 1rem;
+  font-family:var(--mono); font-size:.58rem; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--muted); border-bottom:1px solid var(--border); font-weight:400;
+}
+.stk-table th:not(:first-child):not(:nth-child(2)) { text-align:right; }
+.stk-table td { padding:.85rem 1rem; border-bottom:1px solid rgba(28,28,46,.6); vertical-align:middle; }
+.stk-table td:not(:first-child):not(:nth-child(2)) { text-align:right; font-family:var(--mono); }
+.stk-table tr { transition:background .15s; animation:fadeUp .3s ease both; }
+.stk-table tr:hover { background:rgba(124,106,247,.035); }
+
+.sname { font-weight:500; font-size:.82rem; display:block; }
+.scode { font-family:var(--mono); font-size:.62rem; color:var(--muted); margin-top:.1rem; display:block; }
+
+/* Price input cell */
+.price-input-wrap { position:relative; display:inline-flex; align-items:center; }
+.price-input {
+  background:var(--surface2); border:1px solid var(--border); border-radius:6px;
+  color:var(--text); font-family:var(--mono); font-size:.78rem;
+  padding:.3rem .6rem; width:90px; text-align:right; outline:none;
+  transition:border-color .2s;
+}
+.price-input:focus { border-color:var(--accent); }
+.price-input.updated { border-color:var(--green); animation:flash .4s ease; }
+
+/* Signal badges */
+.sig {
+  display:inline-flex; align-items:center; gap:.3rem;
+  font-family:var(--mono); font-size:.62rem; padding:.25rem .65rem;
+  border-radius:6px; font-weight:500; letter-spacing:.04em; text-transform:uppercase;
+  white-space:nowrap;
+}
+.sig-hold   { background:rgba(82,82,122,.18); color:var(--muted); border:1px solid rgba(82,82,122,.3); }
+.sig-sell   { background:rgba(62,207,142,.1); color:var(--green); border:1px solid rgba(62,207,142,.25); }
+.sig-warn   { background:rgba(240,192,92,.1); color:var(--yellow); border:1px solid rgba(240,192,92,.25); }
+.sig-stop   { background:rgba(240,92,92,.1); color:var(--red); border:1px solid rgba(240,92,92,.25); }
+/* Buy signals */
+.sig-buy    { background:rgba(92,184,240,.12); color:var(--blue); border:1px solid rgba(92,184,240,.3); }
+.sig-strong { background:rgba(62,207,142,.15); color:var(--green); border:1px solid rgba(62,207,142,.35); font-size:.65rem; }
+.sig-wait   { background:rgba(82,82,122,.18); color:var(--muted); border:1px solid rgba(82,82,122,.3); }
+.sig-rich   { background:rgba(240,192,92,.1); color:var(--yellow); border:1px solid rgba(240,192,92,.25); }
+
+/* Return mini bar */
+.ret-wrap { display:flex; flex-direction:column; align-items:flex-end; gap:.3rem; }
+.ret-track { width:72px; height:3px; background:var(--border); border-radius:2px; overflow:hidden; }
+.ret-fill { height:100%; border-radius:2px; }
+
+/* Note tooltip */
+.note-txt { font-size:.65rem; color:var(--muted); max-width:160px; line-height:1.5; }
+
+/* Buy zone indicator */
+.buy-zone {
+  display:flex; flex-direction:column; gap:.2rem;
+  font-family:var(--mono); font-size:.65rem; color:var(--muted); line-height:1.5;
+}
+.bz-row { display:flex; align-items:center; gap:.35rem; }
+.bz-dot { width:5px; height:5px; border-radius:50%; flex-shrink:0; }
+
+/* ── HOLD BUY TABLE extra columns ── */
+.vs-cost { font-size:.7rem; }
+
+/* ── CHARTS ── */
+.charts-row { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1.5rem; }
+.chart-card {
+  background:var(--surface); border:1px solid var(--border); border-radius:12px;
+  padding:1.5rem; animation:fadeUp .4s ease both;
+}
+.chart-card h3 { font-family:var(--mono); font-size:.6rem; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); margin-bottom:1.25rem; }
+
+.donut-wrap { display:flex; align-items:center; gap:1.75rem; }
+.legend-list { flex:1; }
+.leg-item { display:flex; align-items:center; justify-content:space-between; padding:.35rem 0; border-bottom:1px solid rgba(28,28,46,.5); font-family:var(--mono); font-size:.68rem; }
+.leg-item:last-child { border-bottom:none; }
+.leg-name { display:flex; align-items:center; gap:.4rem; color:var(--muted); }
+.leg-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+.leg-pct { color:var(--text); }
+
+.bar-chart-v { display:flex; flex-direction:column; gap:.55rem; }
+.bcv-row { display:flex; align-items:center; gap:.75rem; }
+.bcv-label { font-family:var(--mono); font-size:.62rem; color:var(--muted); width:68px; text-align:right; flex-shrink:0; }
+.bcv-outer { flex:1; height:22px; background:var(--surface2); border-radius:4px; overflow:hidden; }
+.bcv-inner {
+  height:100%; border-radius:4px; display:flex; align-items:center;
+  padding-left:.5rem; font-family:var(--mono); font-size:.62rem; font-weight:500;
+  transition:width 1.1s cubic-bezier(.16,1,.3,1); min-width:2.5rem; white-space:nowrap;
+}
+
+/* ── AI PANEL ── */
+.ai-panel {
+  background:var(--surface); border:1px solid var(--border); border-radius:12px;
+  padding:1.5rem; margin-top:1.5rem; animation:fadeUp .5s ease both;
+}
+.ai-panel-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; }
+.ai-panel-head h3 { font-family:var(--mono); font-size:.6rem; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); }
+.ai-btn {
+  font-family:var(--mono); font-size:.65rem; letter-spacing:.08em; text-transform:uppercase;
+  padding:.4rem 1rem; border-radius:6px; border:1px solid rgba(124,106,247,.4);
+  background:rgba(124,106,247,.1); color:var(--accent); cursor:pointer; transition:all .2s;
+  display:flex; align-items:center; gap:.4rem;
+}
+.ai-btn:hover { background:rgba(124,106,247,.18); border-color:rgba(124,106,247,.6); }
+.ai-btn:disabled { opacity:.4; cursor:not-allowed; }
+.ai-output {
+  min-height:80px; font-size:.78rem; line-height:1.75; color:var(--text);
+  white-space:pre-wrap;
+}
+.ai-output.loading { color:var(--muted); }
+.ai-output strong { color:var(--green); font-weight:600; }
+.ai-cursor { display:inline-block; width:2px; height:1em; background:var(--accent); animation:blink .7s step-end infinite; vertical-align:text-bottom; }
+
+/* ── ACTION PANEL ── */
+.action-panel {
+  background:var(--surface); border:1px solid var(--border); border-radius:12px;
+  padding:1.5rem; margin-top:1.5rem; animation:fadeUp .5s ease both;
+}
+.action-panel > h3 { font-family:var(--mono); font-size:.6rem; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); margin-bottom:1rem; }
+.action-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:.75rem; }
+.action-item {
+  background:var(--surface2); border:1px solid var(--border); border-radius:8px;
+  padding:1rem 1.125rem; display:flex; gap:.75rem; align-items:flex-start;
+}
+.ap-num { font-family:var(--mono); font-size:1rem; font-weight:500; flex-shrink:0; margin-top:.1rem; }
+.ap-body h4 { font-size:.78rem; font-weight:600; margin-bottom:.3rem; }
+.ap-body p { font-size:.68rem; color:var(--muted); line-height:1.55; }
+
+/* ── ANIMATIONS ── */
+@keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+@keyframes flash { 0%,100%{background:var(--surface2)} 50%{background:rgba(62,207,142,.15)} }
+@keyframes blink { 50%{opacity:0} }
+@keyframes spin { to{transform:rotate(360deg)} }
+.spinner { display:inline-block; width:10px; height:10px; border:2px solid rgba(124,106,247,.3); border-top-color:var(--accent); border-radius:50%; animation:spin .6s linear infinite; }
+
+/* ── MOBILE ── */
+@media(max-width:900px){
+  header,.tab-nav,main{ padding-left:1.25rem; padding-right:1.25rem; }
+  .tab-nav{ top:66px; overflow-x:auto; }
+  .summary-strip{ grid-template-columns:repeat(2,1fr); }
+  .charts-row{ grid-template-columns:1fr; }
+  .action-grid{ grid-template-columns:1fr; }
+  .stk-table th:nth-child(6),.stk-table td:nth-child(6){ display:none; }
+}
+</style>
+</head>
+<body>
+
+<!-- LOCK SCREEN -->
+<div id="lockScreen">
+  <div class="lock-box">
+    <div class="lock-logo">
+      Portfolio Monitor
+      <b>投資組合儀表板</b>
+    </div>
+    <div class="pin-dots">
+      <div class="pin-dot" id="d0"></div>
+      <div class="pin-dot" id="d1"></div>
+      <div class="pin-dot" id="d2"></div>
+      <div class="pin-dot" id="d3"></div>
+    </div>
+    <div class="pin-pad">
+      <div class="pin-key" onclick="pinPress('1')">1</div>
+      <div class="pin-key" onclick="pinPress('2')">2</div>
+      <div class="pin-key" onclick="pinPress('3')">3</div>
+      <div class="pin-key" onclick="pinPress('4')">4</div>
+      <div class="pin-key" onclick="pinPress('5')">5</div>
+      <div class="pin-key" onclick="pinPress('6')">6</div>
+      <div class="pin-key" onclick="pinPress('7')">7</div>
+      <div class="pin-key" onclick="pinPress('8')">8</div>
+      <div class="pin-key" onclick="pinPress('9')">9</div>
+      <div class="pin-key del" onclick="pinDel()">⌫</div>
+      <div class="pin-key zero" onclick="pinPress('0')">0</div>
+    </div>
+    <div class="lock-hint" id="lockHint">輸入 4 位數密碼</div>
+  </div>
+</div>
+
+<header>
+  <div class="header-left">
+    <sup>Portfolio Monitor</sup>
+    <h1>投資組合監控儀表板</h1>
+  </div>
+  <div class="header-right">
+    <div class="update-time">
+      資料更新
+      <b id="updateTime">—</b>
+      <span id="priceStatus" style="display:block;font-size:.6rem;margin-top:.2rem;color:var(--muted)">連線中...</span>
+    </div>
+  </div>
+</header>
+
+<nav class="tab-nav">
+  <button class="tab-btn active" data-tab="overview">總覽</button>
+  <button class="tab-btn" data-tab="hold">存股 · 買進判斷</button>
+  <button class="tab-btn" data-tab="wave">波段操作</button>
+  <button class="tab-btn" data-tab="watchlist">👁 AI族群觀察</button>
+  <button class="tab-btn" data-tab="ai">AI 分析</button>
+</nav>
+
+<main>
+
+<!-- ══════════════ TAB: 總覽 ══════════════ -->
+<div class="tab-panel active" id="tab-overview">
+
+  <div class="summary-strip">
+    <div class="s-card" style="animation-delay:.05s">
+      <div class="s-label">投資總現值 TWD</div>
+      <div class="s-val">$967,324</div>
+      <div class="s-sub pos">+34.05% 美股以匯率換算</div>
+    </div>
+    <div class="s-card g" style="animation-delay:.1s">
+      <div class="s-label">台股損益 TWD</div>
+      <div class="s-val pos">+$206,949</div>
+      <div class="s-sub pos">+54.54%　現值 $586,388</div>
+    </div>
+    <div class="s-card g" style="animation-delay:.15s">
+      <div class="s-label">美股損益 USD</div>
+      <div class="s-val pos">+$1,045</div>
+      <div class="s-sub pos">+13.41%　現值 $8,838</div>
+    </div>
+    <div class="s-card y" style="animation-delay:.2s">
+      <div class="s-label">基金損益 TWD</div>
+      <div class="s-val pos">+$5,872</div>
+      <div class="s-sub pos">+6.75%　現值 $92,872</div>
+    </div>
+    <div class="s-card r" style="animation-delay:.25s">
+      <div class="s-label">智能投資 TWD</div>
+      <div class="s-val neg">−0.73%</div>
+      <div class="s-sub" style="color:var(--muted)">現值 $9,239</div>
+    </div>
+  </div>
+
+  <div class="charts-row">
+    <div class="chart-card" style="animation-delay:.1s">
+      <h3>資產配置</h3>
+      <div class="donut-wrap">
+        <svg width="110" height="110" viewBox="0 0 110 110">
+          <circle cx="55" cy="55" r="40" fill="none" stroke="#1c1c2e" stroke-width="15"/>
+          <circle cx="55" cy="55" r="40" fill="none" stroke="#7c6af7" stroke-width="15"
+            stroke-dasharray="135.9 115.2" stroke-dashoffset="0" transform="rotate(-90 55 55)"/>
+          <circle cx="55" cy="55" r="40" fill="none" stroke="#3ecf8e" stroke-width="15"
+            stroke-dasharray="64.1 187" stroke-dashoffset="-135.9" transform="rotate(-90 55 55)"/>
+          <circle cx="55" cy="55" r="40" fill="none" stroke="#f0c05c" stroke-width="15"
+            stroke-dasharray="22.1 229" stroke-dashoffset="-200" transform="rotate(-90 55 55)"/>
+          <circle cx="55" cy="55" r="40" fill="none" stroke="#f05c5c" stroke-width="15"
+            stroke-dasharray="4.7 246.4" stroke-dashoffset="-222.1" transform="rotate(-90 55 55)"/>
+          <text x="55" y="51" text-anchor="middle" fill="#e4e4f0" font-family="DM Mono" font-size="10" font-weight="500">ALL</text>
+          <text x="55" y="63" text-anchor="middle" fill="#52527a" font-family="DM Mono" font-size="7.5">ASSETS</text>
+        </svg>
+        <div class="legend-list">
+          <div class="leg-item"><span class="leg-name"><span class="leg-dot" style="background:#7c6af7"></span>台股</span><span class="leg-pct">54.0%</span></div>
+          <div class="leg-item"><span class="leg-name"><span class="leg-dot" style="background:#3ecf8e"></span>美股</span><span class="leg-pct">25.7%</span></div>
+          <div class="leg-item"><span class="leg-name"><span class="leg-dot" style="background:#f0c05c"></span>基金</span><span class="leg-pct">8.6%</span></div>
+          <div class="leg-item"><span class="leg-name"><span class="leg-dot" style="background:#f05c5c"></span>智能</span><span class="leg-pct">0.9%</span></div>
+          <div class="leg-item"><span class="leg-name"><span class="leg-dot" style="background:#333"></span>現金</span><span class="leg-pct">~10.8%</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="chart-card" style="animation-delay:.15s">
+      <h3>各標的報酬率</h3>
+      <div class="bar-chart-v" id="returnChart"></div>
+    </div>
+  </div>
+
+  <!-- Priority actions -->
+  <div class="action-panel">
+    <h3>⚡ 本週優先行動</h3>
+    <div class="action-grid">
+      <div class="action-item">
+        <div class="ap-num neg">①</div>
+        <div class="ap-body"><h4>華懋 5292 — 停損</h4><p>現虧−8.82%，方向不對。設 $210 停損單，避免繼續擴損。</p></div>
+      </div>
+      <div class="action-item">
+        <div class="ap-num neu">②</div>
+        <div class="ap-body"><h4>TSLA — 掛停利單</h4><p>獲利+37.65%，建議 $450 掛減半停利，鎖住收益。</p></div>
+      </div>
+      <div class="action-item">
+        <div class="ap-num neu">③</div>
+        <div class="ap-body"><h4>NVDA 高成本批次</h4><p>均價 $204 那批僅+7.6%，可先出掉，保留低成本批（$152，+44%）。</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ TAB: 存股買進判斷 ══════════════ -->
+<div class="tab-panel" id="tab-hold">
+  <div class="sec-hd" style="margin-top:.5rem">
+    <h2>存股 · 加碼買進判斷</h2>
+    <div class="ln"></div>
+    <div class="bdg">輸入現價 → 自動判斷訊號</div>
+  </div>
+  <p style="font-size:.72rem;color:var(--muted);margin-bottom:1.25rem;font-family:var(--mono)">
+    判斷邏輯：現價 vs 均價距離 / 近期高低點位置 / 是否在合理買進區間
+  </p>
+
+  <!-- US Hold -->
+  <div class="sec-hd"><h2>美股存股</h2><div class="ln"></div><div class="bdg">USD</div></div>
+  <table class="stk-table">
+    <thead><tr>
+      <th>標的</th><th>均價 / 現價</th><th style="text-align:right">輸入新價格</th>
+      <th>距均價</th><th>買進區間</th><th>訊號</th><th>說明</th>
+    </tr></thead>
+    <tbody id="holdUsTable"></tbody>
+  </table>
+
+  <!-- TW Hold -->
+  <div class="sec-hd" style="margin-top:2rem"><h2>台股存股</h2><div class="ln"></div><div class="bdg">TWD</div></div>
+  <table class="stk-table">
+    <thead><tr>
+      <th>標的</th><th>均價 / 現價</th><th style="text-align:right">輸入新價格</th>
+      <th>距均價</th><th>買進區間</th><th>訊號</th><th>說明</th>
+    </tr></thead>
+    <tbody id="holdTwTable"></tbody>
+  </table>
+
+  <!-- Fund / 基金 -->
+  <div class="sec-hd" style="margin-top:2rem"><h2>基金</h2><div class="ln"></div><div class="bdg">TWD</div></div>
+  <table class="stk-table">
+    <thead><tr>
+      <th>標的</th><th>均價 / 現價</th><th style="text-align:right">輸入新價格</th>
+      <th>距均價</th><th>加碼區間</th><th>訊號</th><th>說明</th>
+    </tr></thead>
+    <tbody id="holdFundTable"></tbody>
+  </table>
+</div>
+
+<!-- ══════════════ TAB: 波段操作 ══════════════ -->
+<div class="tab-panel" id="tab-wave">
+  <div class="sec-hd" style="margin-top:.5rem">
+    <h2>美股波段</h2><div class="ln"></div><div class="bdg">USD · 複委託</div>
+  </div>
+  <table class="stk-table">
+    <thead><tr>
+      <th>標的</th><th>均價</th><th style="text-align:right">輸入現價</th>
+      <th>報酬率</th><th>停利目標</th><th>停損線</th><th>警示</th><th>訊號</th>
+    </tr></thead>
+    <tbody id="waveUsTable"></tbody>
+  </table>
+
+  <div class="sec-hd" style="margin-top:2rem">
+    <h2>台股波段</h2><div class="ln"></div><div class="bdg">TWD</div>
+  </div>
+  <table class="stk-table">
+    <thead><tr>
+      <th>標的</th><th>均價</th><th style="text-align:right">輸入現價</th>
+      <th>報酬率</th><th>停利目標</th><th>停損線</th><th>警示</th><th>訊號</th>
+    </tr></thead>
+    <tbody id="waveTwTable"></tbody>
+  </table>
+</div>
+
+<!-- ══════════════ TAB: AI 分析 ══════════════ -->
+<div class="tab-panel" id="tab-ai">
+  <div class="sec-hd" style="margin-top:.5rem">
+    <h2>AI 智能分析</h2><div class="ln"></div><div class="bdg">Claude Powered</div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;margin-bottom:1.5rem">
+    <div class="chart-card" style="padding:1.25rem;cursor:pointer" onclick="runAI('portfolio')">
+      <div style="font-family:var(--mono);font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem">分析一</div>
+      <div style="font-size:.85rem;font-weight:600;margin-bottom:.35rem">整體組合健康度</div>
+      <div style="font-size:.68rem;color:var(--muted);line-height:1.5">評估資產配置、曝險集中度、獲利鎖定時機</div>
+    </div>
+    <div class="chart-card" style="padding:1.25rem;cursor:pointer" onclick="runAI('buy')">
+      <div style="font-family:var(--mono);font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem">分析二</div>
+      <div style="font-size:.85rem;font-weight:600;margin-bottom:.35rem">存股加碼時機判斷</div>
+      <div style="font-size:.68rem;color:var(--muted);line-height:1.5">針對 0050、台積電、BRK/B、QQQ 的加碼邏輯</div>
+    </div>
+    <div class="chart-card" style="padding:1.25rem;cursor:pointer" onclick="runAI('risk')">
+      <div style="font-family:var(--mono);font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem">分析三</div>
+      <div style="font-size:.85rem;font-weight:600;margin-bottom:.35rem">風險警示</div>
+      <div style="font-size:.68rem;color:var(--muted);line-height:1.5">哪些部位需要特別關注或立即行動</div>
+    </div>
+  </div>
+
+  <div class="ai-panel">
+    <div class="ai-panel-head">
+      <h3 id="aiPanelTitle">點擊上方卡片開始分析</h3>
+      <button class="ai-btn" id="aiBtn" onclick="runAIFromBtn()" disabled>
+        <span class="spinner" id="aiSpinner" style="display:none"></span>
+        <span id="aiBtnTxt">分析</span>
+      </button>
+    </div>
+    <div class="ai-output" id="aiOutput" style="color:var(--muted);font-size:.75rem">
+      選擇分析項目後，AI 會根據你的實際持倉數據給出具體建議。
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ TAB: 觀察清單 ══════════════ -->
+<div class="tab-panel" id="tab-watchlist">
+  <div class="sec-hd" style="margin-top:.5rem">
+    <h2>AI族群觀察清單</h2>
+    <div class="ln"></div>
+    <div class="bdg">自動抓價 · 只顯示可買標的</div>
+  </div>
+  <p style="font-family:var(--mono);font-size:.68rem;color:var(--muted);margin-bottom:1rem">
+    綠燈 = 現價低於合理買進價，可以考慮建倉。依CP值排序。
+  </p>
+  <!-- Sector filter -->
+  <div id="sectorFilter" style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:1.5rem">
+    <button class="sfbtn active" data-sector="all" onclick="setSector('all')">全部</button>
+    <button class="sfbtn" data-sector="AI族群" onclick="setSector('AI族群')">🤖 AI族群</button>
+    <button class="sfbtn" data-sector="AI電力" onclick="setSector('AI電力')">⚡ AI電力/核能</button>
+    <button class="sfbtn" data-sector="機器人" onclick="setSector('機器人')">🦾 機器人</button>
+    <button class="sfbtn" data-sector="先進封裝" onclick="setSector('先進封裝')">🔬 先進封裝</button>
+    <button class="sfbtn" data-sector="國防" onclick="setSector('國防')">🛡 國防/無人機</button>
+    <button class="sfbtn" data-sector="太空" onclick="setSector('太空')">🚀 太空衛星</button>
+  </div>
+
+  <div id="watchlistBuyZone" style="margin-bottom:2rem">
+    <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1rem">
+      <span style="font-family:var(--mono);font-size:.6rem;letter-spacing:.15em;text-transform:uppercase;color:var(--green)">● 現在可以買</span>
+      <div style="flex:1;height:1px;background:rgba(62,207,142,.2)"></div>
+    </div>
+    <div id="watchBuyCards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:.75rem"></div>
+    <div id="watchBuyEmpty" style="display:none;font-family:var(--mono);font-size:.75rem;color:var(--muted);padding:1.5rem;text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:10px">
+      目前沒有標的低於買進價位，繼續等待中...
+    </div>
+  </div>
+
+  <div>
+    <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1rem">
+      <span style="font-family:var(--mono);font-size:.6rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted)">全部觀察標的</span>
+      <div style="flex:1;height:1px;background:var(--border)"></div>
+      <span id="watchLoadStatus" style="font-family:var(--mono);font-size:.6rem;color:var(--muted)">載入中...</span>
+    </div>
+    <div style="margin-bottom:1.25rem">
+      <div style="font-family:var(--mono);font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:.6rem">美股</div>
+      <table class="stk-table">
+        <thead><tr>
+          <th>標的</th><th style="text-align:right">現價</th><th style="text-align:right">買進價</th><th style="text-align:right">強力買入</th><th style="text-align:right">距買進價</th><th>類型</th><th>狀態</th>
+        </tr></thead>
+        <tbody id="watchUsBody"></tbody>
+      </table>
+    </div>
+    <div>
+      <div style="font-family:var(--mono);font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:.6rem">台股</div>
+      <table class="stk-table">
+        <thead><tr>
+          <th>標的</th><th style="text-align:right">現價</th><th style="text-align:right">買進價</th><th style="text-align:right">強力買入</th><th style="text-align:right">距買進價</th><th>類型</th><th>狀態</th>
+        </tr></thead>
+        <tbody id="watchTwBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+
+</main>
+
+<script>
+// ─────────────────────────────────────────────
+// DATA
+// ─────────────────────────────────────────────
+
+// 存股 (long-hold): buy signal logic
+const holdUS = [
+  {
+    code:'BRK/B', name:'Berkshire Hathaway',
+    cost: 474.5, // blended (3 @ 463 + 4.57 @ 488)
+    price: 479.98,
+    // Buy zones
+    strongBuy: 440, buy: 460, fair: 480, rich: 510,
+    note:'巴菲特護城河。現價接近均價，合理偏高。跌至 $460 以下為理想加碼點。',
+    isTW: false
+  },
+  {
+    code:'QQQ', name:'Invesco QQQ',
+    cost: 571, // blended (1 @ 594 + 2.06 @ 563)
+    price: 714.51,
+    strongBuy: 620, buy: 660, fair: 720, rich: 760,
+    note:'現價已大幅超過均價（+25%），處於偏高區。勿追，等回調至 $660 再考慮加碼。',
+    isTW: false
+  }
+];
+
+const holdTW = [
+  {
+    code:'0050', name:'元大台灣50',
+    cost: 50.1,
+    price: 97.3,
+    strongBuy: 88, buy: 92, fair: 98, rich: 108,
+    note:'現價接近合理偏高區。定期定額繼續，單筆加碼等回測 $92 以下。',
+    isTW: true
+  },
+  {
+    code:'2330', name:'台積電',
+    cost: 1645.85,
+    price: 2255,
+    strongBuy: 1900, buy: 2050, fair: 2300, rich: 2600,
+    note:'現價在合理區間上緣。等回測 $2,050 以下再加碼，不宜追高。',
+    isTW: true
+  }
+];
+
+const holdFunds = [
+  {
+    code:'安聯台灣科技', name:'安聯台灣科技基金',
+    cost: null, // no cost shown
+    price: null, // nav-based, shown as TWD 79,970 total
+    ret: 8.07,
+    navDate: '2026/05/21',
+    strongBuy: null, buy: null, fair: null, rich: null,
+    note:'主動型科技基金，+8.07%。定期定額繼續持有，不需特別擇時。',
+    isTW: true, isFund: true
+  },
+  {
+    code:'路博邁台日雙星', name:'路博邁台日雙星T',
+    cost: null,
+    price: null,
+    ret: -0.75,
+    navDate: '2026/05/20',
+    strongBuy: null, buy: null, fair: null, rich: null,
+    note:'目前小虧−0.75%。台日主題，短期震盪正常。持續定期定額，不建議停扣。',
+    isTW: true, isFund: true
+  }
+];
+
+// 波段標的
+const waveUS = [
+  { code:'NVDA', name:'NVIDIA', cost:178, price:219.51, ret:24.81, tp1:240, tp2:260, sl:195, signal:'warn', note:'兩批成本 $152/$204，建議先出高成本批' },
+  { code:'TSLA', name:'Tesla', cost:303.57, price:417.85, ret:37.65, tp1:450, tp2:500, sl:370, signal:'sell', note:'獲利豐厚，可掛移動停利' },
+  { code:'PLTR', name:'Palantir', cost:133.11, price:137.42, ret:3.23, tp1:155, tp2:170, sl:125, signal:'hold', note:'倉位小，空間有限' },
+  { code:'TSM', name:'TSMC ADR', cost:340.34, price:407.15, ret:19.63, tp1:440, tp2:480, sl:370, signal:'warn', note:'與台積電重疊，留意總曝險' }
+];
+const waveTW = [
+  { code:'009816', name:'凱基台灣T', cost:12.88, price:14.19, ret:9.95, tp1:15.5, tp2:16.5, sl:13.5, signal:'hold', note:'ETF，震盪持有' },
+  { code:'00981A', name:'主動統一台股', cost:26.56, price:29.95, ret:12.60, tp1:32, tp2:35, sl:27, signal:'hold', note:'主動ETF，關注淨值' },
+  { code:'2454', name:'聯發科', cost:3205, price:3860, ret:20.02, tp1:4200, tp2:4500, sl:3500, signal:'sell', note:'AI族群動能強' },
+  { code:'3135', name:'凌航', cost:197, price:211.5, ret:6.97, tp1:230, tp2:250, sl:195, signal:'hold', note:'接近成本，停損設緊' },
+  { code:'5292', name:'華懋', cost:239.84, price:219.5, ret:-8.82, tp1:240, tp2:null, sl:210, signal:'stop', note:'⚠️ 唯一虧損' },
+  { code:'8033', name:'雷虎', cost:132, price:138, ret:4.18, tp1:150, tp2:165, sl:128, signal:'hold', note:'小倉位緊盯' }
+];
+
+// ─────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────
+function fmt(v, tw) {
+  if (v == null) return '—';
+  if (tw) return '$' + v.toLocaleString('zh-TW');
+  return '$' + (+v).toFixed(2);
+}
+function pctColor(r) {
+  if (r > 0) return `<span class="pos">+${r.toFixed(2)}%</span>`;
+  if (r < 0) return `<span class="neg">${r.toFixed(2)}%</span>`;
+  return `<span>${r.toFixed(2)}%</span>`;
+}
+function retBar(r) {
+  const c = Math.min(Math.abs(r),100);
+  const col = r >= 0 ? 'var(--green)' : 'var(--red)';
+  return `<div class="ret-track"><div class="ret-fill" style="width:${c}%;background:${col}"></div></div>`;
+}
+
+const waveSigMap = {
+  hold: {cls:'sig-hold', lbl:'持有'},
+  sell: {cls:'sig-sell', lbl:'準備減碼'},
+  warn: {cls:'sig-warn', lbl:'注意'},
+  stop: {cls:'sig-stop', lbl:'⚠ 停損'}
+};
+
+// ─────────────────────────────────────────────
+// BUY SIGNAL LOGIC
+// ─────────────────────────────────────────────
+function getBuySignal(price, s) {
+  if (s.isFund) return { cls:'sig-wait', lbl:'定期定額', note: s.note };
+  if (!price || price <= 0) return { cls:'sig-wait', lbl:'待輸入', note:'' };
+  if (price <= s.strongBuy) return { cls:'sig-strong', lbl:'💚 強力買進', note:`現價低於強力買進區間 ${fmt(s.strongBuy,s.isTW)}` };
+  if (price <= s.buy)       return { cls:'sig-buy',    lbl:'✦ 可以買進', note:`現價在買進區間內（≤ ${fmt(s.buy,s.isTW)}）` };
+  if (price <= s.fair)      return { cls:'sig-wait',   lbl:'合理持有',  note:`現價合理，等待更好買點` };
+  if (price <= s.rich)      return { cls:'sig-warn',   lbl:'偏貴觀望',  note:`現價偏高，不建議加碼` };
+  return { cls:'sig-stop', lbl:'過高 勿追', note:`現價超過合理上限 ${fmt(s.rich,s.isTW)}` };
+}
+
+function distFromCost(price, cost) {
+  if (!price || !cost) return '—';
+  const d = ((price - cost) / cost) * 100;
+  const sign = d >= 0 ? '+' : '';
+  const cls = d >= 0 ? 'pos' : 'neg';
+  return `<span class="${cls}">${sign}${d.toFixed(1)}%</span>`;
+}
+
+// ─────────────────────────────────────────────
+// RENDER: HOLD TABLE
+// ─────────────────────────────────────────────
+function renderHoldTable(stocks, tbodyId) {
+  const tbody = document.getElementById(tbodyId);
+  stocks.forEach((s, i) => {
+    const tr = document.createElement('tr');
+    tr.style.animationDelay = `${.05*i+.05}s`;
+
+    if (s.isFund) {
+      const sig = getBuySignal(null, s);
+      tr.innerHTML = `
+        <td><span class="sname">${s.name}</span><span class="scode">${s.code}</span></td>
+        <td style="font-family:var(--mono);font-size:.72rem">
+          <span style="color:var(--muted)">報酬率</span><br>
+          ${pctColor(s.ret)}
+        </td>
+        <td style="text-align:right;color:var(--muted);font-family:var(--mono);font-size:.68rem">淨值日 ${s.navDate}</td>
+        <td>—</td>
+        <td><span style="font-family:var(--mono);font-size:.65rem;color:var(--muted)">定期定額</span></td>
+        <td><span class="sig ${sig.cls}">${sig.lbl}</span></td>
+        <td><span class="note-txt">${s.note}</span></td>`;
+      tbody.appendChild(tr);
+      return;
+    }
+
+    const initSig = getBuySignal(s.price, s);
+    const bzHtml = `
+      <div class="buy-zone">
+        <div class="bz-row"><span class="bz-dot" style="background:var(--green)"></span>強買 ≤ ${fmt(s.strongBuy,s.isTW)}</div>
+        <div class="bz-row"><span class="bz-dot" style="background:#5cb8f0"></span>買進 ≤ ${fmt(s.buy,s.isTW)}</div>
+        <div class="bz-row"><span class="bz-dot" style="background:var(--muted)"></span>合理 ≤ ${fmt(s.fair,s.isTW)}</div>
+        <div class="bz-row"><span class="bz-dot" style="background:var(--yellow)"></span>偏貴 ≤ ${fmt(s.rich,s.isTW)}</div>
+      </div>`;
+
+    tr.innerHTML = `
+      <td><span class="sname">${s.name}</span><span class="scode">${s.code}</span></td>
+      <td style="font-family:var(--mono);font-size:.75rem">
+        <span style="color:var(--muted)">均 </span>${fmt(s.cost,s.isTW)}<br>
+        <span style="color:var(--muted)">現 </span><span id="dp-${s.code}">${fmt(s.price,s.isTW)}</span>
+      </td>
+      <td style="text-align:right">
+        <div class="price-input-wrap">
+          <input class="price-input" type="number" id="inp-${s.code}" value="${s.price}" step="${s.isTW?1:0.01}"
+            onchange="updateHold('${s.code}')" onkeydown="if(event.key==='Enter')updateHold('${s.code}')">
+        </div>
+      </td>
+      <td id="dist-${s.code}">${distFromCost(s.price, s.cost)}</td>
+      <td>${bzHtml}</td>
+      <td><span class="sig ${initSig.cls}" id="sig-${s.code}">${initSig.lbl}</span></td>
+      <td><span class="note-txt" id="note-${s.code}">${s.note}</span></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+// Update hold signal on price input
+const allHoldStocks = [...holdUS, ...holdTW, ...holdFunds];
+function updateHold(code) {
+  const s = allHoldStocks.find(x => x.code === code);
+  if (!s || s.isFund) return;
+  const inp = document.getElementById('inp-' + code);
+  const price = parseFloat(inp.value);
+  if (isNaN(price) || price <= 0) return;
+  s.price = price;
+
+  document.getElementById('dp-' + code).textContent = fmt(price, s.isTW);
+  document.getElementById('dist-' + code).innerHTML = distFromCost(price, s.cost);
+  const sig = getBuySignal(price, s);
+  const sigEl = document.getElementById('sig-' + code);
+  sigEl.className = `sig ${sig.cls}`;
+  sigEl.textContent = sig.lbl;
+  if (sig.note) document.getElementById('note-' + code).textContent = sig.note;
+
+  inp.classList.add('updated');
+  setTimeout(() => inp.classList.remove('updated'), 600);
+}
+
+// ─────────────────────────────────────────────
+// RENDER: WAVE TABLE
+// ─────────────────────────────────────────────
+function renderWaveTable(stocks, tbodyId, isTW) {
+  const tbody = document.getElementById(tbodyId);
+  stocks.forEach((s, i) => {
+    const tr = document.createElement('tr');
+    tr.style.animationDelay = `${.05*i+.05}s`;
+    const sig = waveSigMap[s.signal];
+    tr.innerHTML = `
+      <td><span class="sname">${s.name}</span><span class="scode">${s.code}</span></td>
+      <td style="font-family:var(--mono)">${fmt(s.cost,isTW)}</td>
+      <td style="text-align:right">
+        <input class="price-input" type="number" id="winp-${s.code}" value="${s.price}" step="${isTW?1:0.01}"
+          onchange="updateWave('${s.code}',${isTW})" onkeydown="if(event.key==='Enter')updateWave('${s.code}',${isTW})">
+      </td>
+      <td id="wret-${s.code}">
+        <div class="ret-wrap">${pctColor(s.ret)}${retBar(s.ret)}</div>
+      </td>
+      <td style="color:var(--green)">${fmt(s.tp1,isTW)}</td>
+      <td style="color:var(--red)">${fmt(s.sl,isTW)}</td>
+      <td>
+        <div class="buy-zone">
+          <div class="bz-row"><span class="bz-dot" style="background:var(--green)"></span>停利 ${fmt(s.tp1,isTW)}${s.tp2?' / '+fmt(s.tp2,isTW):''}</div>
+          <div class="bz-row"><span class="bz-dot" style="background:var(--red)"></span>停損 ${fmt(s.sl,isTW)}</div>
+        </div>
+      </td>
+      <td><span class="sig ${sig.cls}" id="wsig-${s.code}">${sig.lbl}</span></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+const allWaveStocks = [...waveUS.map(s=>({...s,isTW:false})), ...waveTW.map(s=>({...s,isTW:true}))];
+function updateWave(code, isTW) {
+  const s = allWaveStocks.find(x => x.code === code);
+  if (!s) return;
+  const inp = document.getElementById('winp-' + code);
+  const price = parseFloat(inp.value);
+  if (isNaN(price) || price <= 0) return;
+
+  const newRet = ((price - s.cost) / s.cost) * 100;
+  s.price = price; s.ret = newRet;
+
+  // Update return cell
+  document.getElementById('wret-' + code).innerHTML =
+    `<div class="ret-wrap">${pctColor(newRet)}${retBar(newRet)}</div>`;
+
+  // Recalc signal
+  let newSig = 'hold';
+  if (price <= s.sl) newSig = 'stop';
+  else if (price >= s.tp1) newSig = 'sell';
+  else if (price >= s.tp1 * 0.95) newSig = 'warn';
+  else if (s.code === '5292' && newRet < -5) newSig = 'stop';
+  s.signal = newSig;
+
+  const sig = waveSigMap[newSig];
+  const sigEl = document.getElementById('wsig-' + code);
+  sigEl.className = `sig ${sig.cls}`;
+  sigEl.textContent = sig.lbl;
+
+  inp.classList.add('updated');
+  setTimeout(() => inp.classList.remove('updated'), 600);
+}
+
+// ─────────────────────────────────────────────
+// RENDER: RETURN CHART (overview)
+// ─────────────────────────────────────────────
+function renderReturnChart() {
+  const all = [
+    {l:'TSLA',r:37.65,c:'#3ecf8e'},{l:'0050',r:93.88,c:'#7c6af7'},
+    {l:'聯發科',r:20.02,c:'#3ecf8e'},{l:'NVDA',r:24.81,c:'#3ecf8e'},
+    {l:'TSM',r:19.63,c:'#7c6af7'},{l:'QQQ',r:24.66,c:'#52527a'},
+    {l:'台積電',r:36.5,c:'#7c6af7'},{l:'凌航',r:6.97,c:'#7c6af7'},
+    {l:'華懋',r:-8.82,c:'#f05c5c'},{l:'PLTR',r:3.23,c:'#5cb8f0'},
+  ].sort((a,b)=>b.r-a.r);
+  const max = Math.max(...all.map(d=>Math.abs(d.r)));
+  const container = document.getElementById('returnChart');
+  all.forEach(d => {
+    const pct = (Math.abs(d.r)/max)*100;
+    const sign = d.r>=0?'+':'';
+    const div = document.createElement('div');
+    div.className='bcv-row';
+    div.innerHTML=`
+      <span class="bcv-label">${d.l}</span>
+      <div class="bcv-outer">
+        <div class="bcv-inner" style="width:0%;background:${d.c};color:${d.r<0?'#fff':'#08080e'}"
+          data-w="${pct}">${sign}${d.r}%</div>
+      </div>`;
+    container.appendChild(div);
+  });
+  setTimeout(()=>{
+    document.querySelectorAll('.bcv-inner').forEach(b=>{ b.style.width=b.dataset.w+'%'; });
+  },250);
+}
+
+
+// ─────────────────────────────────────────────
+// WATCHLIST RENDER + CP VALUE SCORING
+// ─────────────────────────────────────────────
+// CP 值計算（滿分100）:
+// 折價幅度(40) + 強力買進bonus(25) + 上漲空間(20) + 類型權重(15)
+function calcCP(s) {
+  if (!s.price) return 0;
+  const discountPct = ((s.buy - s.price) / s.buy) * 100;
+  const discountScore = Math.min(discountPct * 4, 40);
+  const strongBonus = s.price <= s.strongBuy ? 25 : 0;
+  const upside = ((s.buy - s.price) / s.price) * 100;
+  const upsideScore = Math.min(upside * 1.5, 20);
+  const typeW = {'AI晶片':8,'AI伺服器':8,'AI連結':7,'AI網路':7,'AI電源':6,'AI散熱':6,'AI平台':5,'AI雲端':5,'AI應用':4,'AI PC':3,'AI GPU':3};
+  const typeScore = ((typeW[s.type] || 5) / 8) * 15;
+  return Math.min(Math.round(discountScore + strongBonus + upsideScore + typeScore), 100);
+}
+function cpMeta(score) {
+  if (score >= 85) return { txt:'S 級', color:'#3ecf8e' };
+  if (score >= 70) return { txt:'A 級', color:'#5cb8f0' };
+  if (score >= 55) return { txt:'B 級', color:'#f0c05c' };
+  return { txt:'C 級', color:'#a0a0c0' };
+}
+
+function renderWatchlist(prices) {
+  lastPricesCache = prices;
+  let allWatch = [
+    ...watchUS.map(s=>({...s,isTW:false})),
+    ...watchTW.map(s=>({...s,isTW:true}))
+  ];
+  allWatch.forEach(s => {
+    const lp = prices[s.yahoo];
+    s.price = lp ? lp.price : null;
+  });
+
+  // Apply sector filter
+  if (activeSector !== 'all') {
+    allWatch = allWatch.filter(s => s.sector === activeSector);
+  }
+
+  const canBuy = allWatch
+    .filter(s => s.price && s.price <= s.buy)
+    .map(s => ({...s, cp: calcCP(s)}))
+    .sort((a,b) => b.cp - a.cp);
+
+  const buyCards = document.getElementById('watchBuyCards');
+  const buyEmpty = document.getElementById('watchBuyEmpty');
+  buyCards.innerHTML = '';
+
+  if (canBuy.length === 0) {
+    buyEmpty.style.display = 'block';
+  } else {
+    buyEmpty.style.display = 'none';
+    canBuy.forEach((s, rank) => {
+      const isStrong = s.price <= s.strongBuy;
+      const discountPct = (((s.buy - s.price) / s.buy) * 100).toFixed(1);
+      const cp = cpMeta(s.cp);
+      const priceStr = s.isTW ? '$'+s.price.toLocaleString('zh-TW') : '$'+s.price.toFixed(2);
+      const buyStr  = s.isTW ? '$'+s.buy.toLocaleString('zh-TW') : '$'+s.buy.toFixed(2);
+      const sbStr   = s.isTW ? '$'+s.strongBuy.toLocaleString('zh-TW') : '$'+s.strongBuy.toFixed(2);
+      const rankEmoji = rank===0?'🥇':rank===1?'🥈':rank===2?'🥉':`${rank+1}.`;
+      const rankNote = rank===0?'▲ 優先首選，CP值最高，建議優先建倉':rank===1?'▲ 次選，折價幅度佳':rank===2?'▲ 第三優先，值得考慮':'';
+      const borderCol = isStrong ? 'rgba(62,207,142,.45)' : 'rgba(92,184,240,.3)';
+      const topCol   = isStrong ? 'var(--green)' : 'var(--blue)';
+
+      const card = document.createElement('div');
+      card.style.cssText = `background:var(--surface);border:1px solid ${borderCol};border-radius:12px;padding:1.25rem;position:relative;overflow:hidden;animation:fadeUp .3s ease both;animation-delay:${rank*0.05}s`;
+      const isHold = s.holdType === 'hold';
+      const htBadge = isHold
+        ? `<span style="font-family:var(--mono);font-size:.58rem;padding:.15rem .45rem;border-radius:4px;background:rgba(62,207,142,.1);color:var(--green);border:1px solid rgba(62,207,142,.3)">📦 存股</span>`
+        : `<span style="font-family:var(--mono);font-size:.58rem;padding:.15rem .45rem;border-radius:4px;background:rgba(240,192,92,.1);color:var(--yellow);border:1px solid rgba(240,192,92,.3)">⚡ 波段</span>`;
+      const tp1Str = s.isTW ? '$'+(s.tp1||0).toLocaleString('zh-TW') : '$'+(s.tp1||0).toFixed(2);
+      const tp2Str = s.isTW ? '$'+(s.tp2||0).toLocaleString('zh-TW') : '$'+(s.tp2||0).toFixed(2);
+      const slStr  = s.isTW ? '$'+(s.sl||0).toLocaleString('zh-TW')  : '$'+(s.sl||0).toFixed(2);
+      const upside1 = s.price && s.tp1 ? (((s.tp1-s.price)/s.price)*100).toFixed(0) : 0;
+      const upside2 = s.price && s.tp2 ? (((s.tp2-s.price)/s.price)*100).toFixed(0) : 0;
+
+      card.innerHTML = `
+        <div style="position:absolute;top:0;left:0;right:0;height:2px;background:${topCol}"></div>
+
+        <!-- 排名 + 名稱 + 存股/波段 -->
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.55rem">
+          <div style="display:flex;align-items:center;gap:.45rem">
+            <span style="font-size:.95rem">${rankEmoji}</span>
+            <div>
+              <div style="font-weight:700;font-size:.88rem;display:flex;align-items:center;gap:.4rem">
+                ${s.name} ${htBadge}
+              </div>
+              <div style="font-family:var(--mono);font-size:.58rem;color:var(--muted);margin-top:.1rem">${s.code} · ${s.type} · <span style="color:var(--accent)">${s.sector||''}</span></div>
+            </div>
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            <div style="font-family:var(--mono);font-size:.58rem;color:${cp.color};font-weight:600">${cp.txt}</div>
+            <div style="font-family:var(--mono);font-size:.82rem;font-weight:600;color:${cp.color}">${s.cp}分</div>
+          </div>
+        </div>
+
+        <!-- CP Bar -->
+        <div style="width:100%;height:3px;background:var(--border);border-radius:2px;margin-bottom:.8rem;overflow:hidden">
+          <div style="width:${s.cp}%;height:100%;background:${cp.color};border-radius:2px;transition:width 1s ease"></div>
+        </div>
+
+        <!-- 現價 + 折價 -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin-bottom:.6rem">
+          <div>
+            <div style="font-family:var(--mono);font-size:.54rem;color:var(--muted);margin-bottom:.1rem">現價</div>
+            <div style="font-family:var(--mono);font-size:.98rem;font-weight:600">${priceStr}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-family:var(--mono);font-size:.54rem;color:var(--muted);margin-bottom:.1rem">低於買進價</div>
+            <div style="font-family:var(--mono);font-size:.98rem;font-weight:600;color:var(--green)">−${discountPct}%</div>
+          </div>
+        </div>
+
+        <!-- 買進/強買 -->
+        <div style="display:flex;gap:.35rem;flex-wrap:wrap;margin-bottom:.6rem">
+          <div style="font-family:var(--mono);font-size:.58rem;background:var(--surface2);padding:.18rem .45rem;border-radius:4px;border:1px solid var(--border)">買進 ${buyStr}</div>
+          <div style="font-family:var(--mono);font-size:.58rem;background:rgba(62,207,142,.08);padding:.18rem .45rem;border-radius:4px;border:1px solid rgba(62,207,142,.2);color:var(--green)">強買 ${sbStr}</div>
+        </div>
+
+        <!-- 目標價 + 停損（波段才顯示） -->
+        ${!isHold ? `
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:.5rem .7rem;margin-bottom:.6rem">
+          <div style="font-family:var(--mono);font-size:.54rem;color:var(--muted);margin-bottom:.35rem;letter-spacing:.1em;text-transform:uppercase">波段目標</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.3rem;text-align:center">
+            <div>
+              <div style="font-family:var(--mono);font-size:.54rem;color:var(--muted)">目標①</div>
+              <div style="font-family:var(--mono);font-size:.75rem;color:var(--green);font-weight:600">${tp1Str}</div>
+              <div style="font-family:var(--mono);font-size:.54rem;color:var(--green)">+${upside1}%</div>
+            </div>
+            <div>
+              <div style="font-family:var(--mono);font-size:.54rem;color:var(--muted)">目標②</div>
+              <div style="font-family:var(--mono);font-size:.75rem;color:var(--green);font-weight:600">${tp2Str}</div>
+              <div style="font-family:var(--mono);font-size:.54rem;color:var(--green)">+${upside2}%</div>
+            </div>
+            <div>
+              <div style="font-family:var(--mono);font-size:.54rem;color:var(--muted)">停損</div>
+              <div style="font-family:var(--mono);font-size:.75rem;color:var(--red);font-weight:600">${slStr}</div>
+              <div style="font-family:var(--mono);font-size:.54rem;color:var(--red)">出場</div>
+            </div>
+          </div>
+        </div>` : `
+        <div style="background:rgba(62,207,142,.05);border:1px solid rgba(62,207,142,.15);border-radius:6px;padding:.5rem .7rem;margin-bottom:.6rem">
+          <div style="font-family:var(--mono);font-size:.54rem;color:var(--green);margin-bottom:.3rem;letter-spacing:.1em;text-transform:uppercase">存股策略</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.3rem;text-align:center">
+            <div>
+              <div style="font-family:var(--mono);font-size:.54rem;color:var(--muted)">中期目標</div>
+              <div style="font-family:var(--mono);font-size:.75rem;color:var(--green);font-weight:600">${tp1Str}</div>
+              <div style="font-family:var(--mono);font-size:.54rem;color:var(--green)">+${upside1}%</div>
+            </div>
+            <div>
+              <div style="font-family:var(--mono);font-size:.54rem;color:var(--muted)">停損參考</div>
+              <div style="font-family:var(--mono);font-size:.75rem;color:var(--red);font-weight:600">${slStr}</div>
+              <div style="font-family:var(--mono);font-size:.54rem;color:var(--red)">-10%</div>
+            </div>
+          </div>
+        </div>`}
+
+        <!-- 說明 -->
+        <div style="font-size:.62rem;color:var(--muted);line-height:1.5;padding-top:.5rem;border-top:1px solid var(--border)">${s.note}</div>
+        ${rank<3 && rankNote ? `<div style="margin-top:.4rem;font-size:.62rem;color:${cp.color};font-weight:600">${rankNote}</div>` : ''}
+      `;
+      buyCards.appendChild(card);
+    });
+  }
+
+  // Render full tables
+  function renderWatchRows(stocks, tbodyId) {
+    const tbody = document.getElementById(tbodyId);
+    tbody.innerHTML = '';
+    stocks.filter(s => !s.isTW === !watchUS.includes(stocks[0]) || true).forEach((s,i) => {
+      const priceStr = s.price ? (s.isTW ? '$'+s.price.toLocaleString('zh-TW') : '$'+s.price.toFixed(2)) : '—';
+      const buyStr = s.isTW ? '$'+s.buy.toLocaleString('zh-TW') : '$'+s.buy.toFixed(2);
+      const sbStr = s.isTW ? '$'+s.strongBuy.toLocaleString('zh-TW') : '$'+s.strongBuy.toFixed(2);
+      let dist = '—', distCls = '';
+      if (s.price) {
+        const d = ((s.price - s.buy) / s.buy * 100);
+        dist = (d>=0?'+':'')+d.toFixed(1)+'%';
+        distCls = d <= 0 ? 'pos' : 'neg';
+      }
+      const canBuyNow = s.price && s.price <= s.buy;
+      const isStrong = s.price && s.price <= s.strongBuy;
+      let sigHtml = '<span class="sig sig-wait">觀察中</span>';
+      if (isStrong) sigHtml = '<span class="sig sig-strong">💚 強力買進</span>';
+      else if (canBuyNow) sigHtml = '<span class="sig sig-buy">✦ 可買進</span>';
+      const tr = document.createElement('tr');
+      tr.style.animationDelay = `${.04*i}s`;
+      if (canBuyNow) tr.style.background = 'rgba(62,207,142,.03)';
+      const rowHtBadge = s.holdType==='hold'
+        ? `<span style="font-family:var(--mono);font-size:.55rem;padding:.1rem .35rem;border-radius:3px;background:rgba(62,207,142,.1);color:var(--green);border:1px solid rgba(62,207,142,.25)">存股</span>`
+        : `<span style="font-family:var(--mono);font-size:.55rem;padding:.1rem .35rem;border-radius:3px;background:rgba(240,192,92,.1);color:var(--yellow);border:1px solid rgba(240,192,92,.25)">波段</span>`;
+      const rowTp1 = s.tp1 ? (s.isTW?'$'+s.tp1.toLocaleString('zh-TW'):'$'+s.tp1.toFixed(2)) : '—';
+      tr.innerHTML = `
+        <td>
+          <span class="sname" style="display:flex;align-items:center;gap:.35rem">${s.name} ${rowHtBadge}</span>
+          <span class="scode">${s.code}</span>
+        </td>
+        <td style="font-family:var(--mono)">${priceStr}</td>
+        <td style="font-family:var(--mono);color:var(--blue)">${buyStr}</td>
+        <td style="font-family:var(--mono);color:var(--green)">${sbStr}</td>
+        <td><span class="${distCls}" style="font-family:var(--mono)">${dist}</span></td>
+        <td>
+          <span style="font-size:.62rem;color:var(--muted);display:block">${s.type}</span>
+          ${s.holdType==='wave'?`<span style="font-family:var(--mono);font-size:.58rem;color:var(--green)">目標 ${rowTp1}</span>`:''}
+        </td>
+        <td>${sigHtml}</td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
+  renderWatchRows(watchUS, 'watchUsBody');
+  renderWatchRows(watchTW, 'watchTwBody');
+
+  const status = document.getElementById('watchLoadStatus');
+  if (status) {
+    const loaded = allWatch.filter(s=>s.price).length;
+    status.textContent = `${loaded}/${allWatch.length} 筆已更新`;
+    status.style.color = 'var(--green)';
+  }
+}
+
+// ─────────────────────────────────────────────
+// SECTOR FILTER
+// ─────────────────────────────────────────────
+let activeSector = 'all';
+let lastPricesCache = {};
+
+function setSector(sector) {
+  activeSector = sector;
+  document.querySelectorAll('.sfbtn').forEach(b => {
+    b.classList.toggle('active', b.dataset.sector === sector);
+  });
+  if (Object.keys(lastPricesCache).length > 0) renderWatchlist(lastPricesCache);
+}
+
+// ─────────────────────────────────────────────
+// TABS
+// ─────────────────────────────────────────────
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+  });
+});
+
+// ─────────────────────────────────────────────
+// AI ANALYSIS
+// ─────────────────────────────────────────────
+let currentAIMode = null;
+const aiPrompts = {
+  portfolio: `你是一位專業的投資組合分析師。以下是用戶目前的持倉數據，請用繁體中文給出具體、簡潔的分析：
+
+【台股持倉】
+- 0050 元大台灣50：成本 $50.1，現價 $97.3，+93.88%，市值 $330,951
+- 2330 台積電：成本 $1,645，現價 $2,255，+36.5%，市值 $139,349
+- 2454 聯發科：成本 $3,205，現價 $3,860，+20%，市值 $7,696
+- 5292 華懋：成本 $239.84，現價 $219.5，-8.82%，市值 $9,627
+- 其他台股小倉位：凌航(+6.97%)、雷虎(+4.18%)
+
+【美股持倉（USD）】
+- BRK/B：均價 $474，現價 $479.98，+0.34%（存股）
+- QQQ：均價 $571，現價 $714.51，+24.66%（存股）
+- NVDA：兩批均價 $152/$204，現價 $219.51，綜合+24.81%
+- TSLA：均價 $303.57，現價 $417.85，+37.65%
+- PLTR：均價 $133.11，現價 $137.42，+3.23%
+- TSM：均價 $340.34，現價 $407.15，+19.63%
+
+【基金】安聯台灣科技(+8.07%)、路博邁台日雙星(-0.75%)
+
+請針對：1)整體組合健康度 2)最需要關注的3個風險點 3)建議的下一步行動，各給出2-3句具體建議。格式清楚、不用廢話。`,
+
+  buy: `你是一位專業投資顧問。用戶有以下存股標的，想知道現在是否是好的加碼時機：
+
+- 0050 元大台灣50：均價 $50.1，現價 $97.3（+93.88%）
+- 台積電 2330：均價 $1,645，現價 $2,255（+36.5%）
+- BRK/B：均價 $474，現價 $479.98（+0.34%）
+- QQQ：均價 $571，現價 $714.51（+24.66%）
+
+請用繁體中文針對每一檔，說明：
+1. 現在加碼是否合理（從估值、技術面角度）
+2. 建議等到什麼價位再加碼
+3. 如果現在就要買，應該用什麼策略（一次買/分批/等回調）
+
+回答要具體、有數字，不要模糊帶過。`,
+
+  risk: `你是一位風險管理顧問。以下投資組合有哪些需要立即關注的風險，請用繁體中文回答：
+
+持倉重點：
+- 台積電相關曝險：持有2330現股 + TSM ADR + 0050（內含台積電約35%），三重曝險
+- TSLA +37.65% 未鎖利
+- 華懋5292 -8.82% 持續虧損
+- NVDA兩批成本差距大（$152 vs $204）
+- 基金路博邁台日雙星 -0.75%
+
+請針對每個風險點說明：1)具體風險是什麼 2)建議立即做什麼 3)設什麼警示價位。
+格式要清楚，數字要具體。`
+};
+
+function runAI(mode) {
+  currentAIMode = mode;
+  const titles = {
+    portfolio:'整體組合健康度分析',
+    buy:'存股加碼時機判斷',
+    risk:'風險警示分析'
+  };
+  document.getElementById('aiPanelTitle').textContent = titles[mode];
+  document.getElementById('aiBtn').disabled = false;
+  document.getElementById('aiBtnTxt').textContent = '開始分析';
+  document.getElementById('aiOutput').textContent = '點擊「開始分析」按鈕執行。';
+
+  // Switch to AI tab
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelector('[data-tab="ai"]').classList.add('active');
+  document.getElementById('tab-ai').classList.add('active');
+}
+
+function runAIFromBtn() {
+  if (!currentAIMode) return;
+  startAI(currentAIMode);
+}
+
+async function startAI(mode) {
+  const btn = document.getElementById('aiBtn');
+  const spinner = document.getElementById('aiSpinner');
+  const btnTxt = document.getElementById('aiBtnTxt');
+  const output = document.getElementById('aiOutput');
+
+  btn.disabled = true;
+  spinner.style.display = 'inline-block';
+  btnTxt.textContent = '分析中...';
+  output.textContent = '';
+  output.classList.add('loading');
+
+  const cursor = document.createElement('span');
+  cursor.className = 'ai-cursor';
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        stream: true,
+        messages: [{ role: 'user', content: aiPrompts[mode] }]
+      })
+    });
+
+    output.classList.remove('loading');
+    output.textContent = '';
+    output.appendChild(cursor);
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const data = line.slice(6).trim();
+          if (data === '[DONE]') continue;
+          try {
+            const json = JSON.parse(data);
+            if (json.type === 'content_block_delta' && json.delta?.text) {
+              output.insertBefore(document.createTextNode(json.delta.text), cursor);
+            }
+          } catch {}
+        }
+      }
+    }
+    cursor.remove();
+  } catch (err) {
+    output.classList.remove('loading');
+    output.textContent = '分析時發生錯誤：' + err.message;
+  } finally {
+    btn.disabled = false;
+    spinner.style.display = 'none';
+    btnTxt.textContent = '重新分析';
+  }
+}
+
+
+// ─────────────────────────────────────────────
+// WATCHLIST DATA (AI族群)
+// ─────────────────────────────────────────────
+// ── holdType: 'hold'=存股(長期不動)  'wave'=波段(有停利目標)
+// ── tp1: 波段第一目標  tp2: 波段滿倉出場目標  sl: 停損
+// ── AI族群 ──
+const watchUS = [
+  { code:'MSFT',  name:'微軟',          yahoo:'MSFT',  buy:380,  strongBuy:350, type:'AI平台',    sector:'AI族群', holdType:'hold', tp1:450,  tp2:520,  sl:340,  note:'Azure OpenAI雲端龍頭，適合長期持有' },
+  { code:'GOOGL', name:'Alphabet',      yahoo:'GOOGL', buy:155,  strongBuy:140, type:'AI平台',    sector:'AI族群', holdType:'hold', tp1:190,  tp2:220,  sl:138,  note:'Gemini+TPU自研晶片，長期存股' },
+  { code:'META',  name:'Meta',          yahoo:'META',  buy:520,  strongBuy:470, type:'AI應用',    sector:'AI族群', holdType:'wave', tp1:640,  tp2:750,  sl:470,  note:'AI廣告爆發，波段操作' },
+  { code:'AMZN',  name:'Amazon',        yahoo:'AMZN',  buy:185,  strongBuy:165, type:'AI雲端',    sector:'AI族群', holdType:'hold', tp1:230,  tp2:270,  sl:162,  note:'AWS AI投資最大，長期持有' },
+  { code:'AMD',   name:'AMD',           yahoo:'AMD',   buy:105,  strongBuy:90,  type:'AI晶片',    sector:'AI族群', holdType:'wave', tp1:140,  tp2:180,  sl:85,   note:'MI450挑戰NVDA，高波動波段' },
+  { code:'ARM',   name:'ARM Holdings',  yahoo:'ARM',   buy:100,  strongBuy:85,  type:'AI晶片',    sector:'AI族群', holdType:'wave', tp1:135,  tp2:165,  sl:80,   note:'AI處理器架構授權，波段' },
+  { code:'SMCI',  name:'超微電腦',       yahoo:'SMCI',  buy:38,   strongBuy:30,  type:'AI伺服器',  sector:'AI族群', holdType:'wave', tp1:55,   tp2:75,   sl:27,   note:'高波動，嚴設停損' },
+  { code:'MRVL',  name:'Marvell',       yahoo:'MRVL',  buy:65,   strongBuy:55,  type:'AI晶片',    sector:'AI族群', holdType:'wave', tp1:88,   tp2:108,  sl:52,   note:'ASIC客製晶片，波段操作' },
+  { code:'ALAB',  name:'Astera Labs',   yahoo:'ALAB',  buy:80,   strongBuy:65,  type:'AI連結',    sector:'AI族群', holdType:'wave', tp1:110,  tp2:135,  sl:60,   note:'AI資料中心連結晶片，波段' },
+  { code:'ANET',  name:'Arista',        yahoo:'ANET',  buy:95,   strongBuy:80,  type:'AI網路',    sector:'AI族群', holdType:'hold', tp1:130,  tp2:160,  sl:78,   note:'AI資料中心網路，可存股' },
+  // ── AI電力/核能 ──
+  { code:'CEG',   name:'Constellation', yahoo:'CEG',   buy:220,  strongBuy:190, type:'核能',      sector:'AI電力', holdType:'hold', tp1:280,  tp2:340,  sl:175,  note:'美國最大核電商，長期存股' },
+  { code:'VST',   name:'Vistra',        yahoo:'VST',   buy:140,  strongBuy:118, type:'電力',      sector:'AI電力', holdType:'wave', tp1:185,  tp2:230,  sl:108,  note:'高波動，波段操作' },
+  { code:'GEV',   name:'GE Vernova',    yahoo:'GEV',   buy:280,  strongBuy:245, type:'電網',      sector:'AI電力', holdType:'hold', tp1:350,  tp2:420,  sl:225,  note:'電網升級長期受惠，存股' },
+  { code:'ETN',   name:'Eaton',         yahoo:'ETN',   buy:290,  strongBuy:260, type:'電力設備',  sector:'AI電力', holdType:'hold', tp1:360,  tp2:420,  sl:245,  note:'資料中心電力基礎設施，存股' },
+  // ── 機器人/太空 ──
+  { code:'TER',   name:'Teradyne',      yahoo:'TER',   buy:95,   strongBuy:80,  type:'機器人測試',sector:'機器人', holdType:'wave', tp1:130,  tp2:160,  sl:72,   note:'協作機器人UR，波段' },
+  { code:'RKLB',  name:'Rocket Lab',    yahoo:'RKLB',  buy:18,   strongBuy:13,  type:'太空',      sector:'太空',   holdType:'wave', tp1:28,   tp2:40,   sl:10,   note:'高風險高報酬，小倉波段' },
+  { code:'LUNR',  name:'Intuitive Mach',yahoo:'LUNR',  buy:12,   strongBuy:8,   type:'太空',      sector:'太空',   holdType:'wave', tp1:20,   tp2:32,   sl:6,    note:'最高風險，超小倉位試水' },
+];
+
+const watchTW = [
+  // ── AI族群 ──
+  { code:'2379', name:'瑞昱',    yahoo:'2379.TW', buy:620,  strongBuy:560,  type:'AI晶片',    sector:'AI族群',  holdType:'wave', tp1:750,  tp2:880,  sl:540,  note:'網通+AI邊緣運算晶片，波段' },
+  { code:'2308', name:'台達電',  yahoo:'2308.TW', buy:320,  strongBuy:290,  type:'AI電源',    sector:'AI族群',  holdType:'hold', tp1:400,  tp2:480,  sl:275,  note:'馬達+電源雙受惠，可存股' },
+  { code:'3034', name:'聯詠',    yahoo:'3034.TW', buy:290,  strongBuy:260,  type:'AI晶片',    sector:'AI族群',  holdType:'wave', tp1:360,  tp2:430,  sl:248,  note:'顯示驅動IC，波段' },
+  { code:'6669', name:'緯穎',    yahoo:'6669.TW', buy:2000, strongBuy:1800, type:'AI伺服器',  sector:'AI族群',  holdType:'wave', tp1:2500, tp2:3000, sl:1650, note:'GB300 ODM，高波動波段' },
+  { code:'2382', name:'廣達',    yahoo:'2382.TW', buy:220,  strongBuy:195,  type:'AI伺服器',  sector:'AI族群',  holdType:'wave', tp1:280,  tp2:340,  sl:185,  note:'雲端AI伺服器，波段' },
+  { code:'3231', name:'緯創',    yahoo:'3231.TW', buy:150,  strongBuy:130,  type:'AI伺服器',  sector:'AI族群',  holdType:'wave', tp1:190,  tp2:230,  sl:125,  note:'Dell獨家，目標190元，波段' },
+  { code:'2357', name:'華碩',    yahoo:'2357.TW', buy:480,  strongBuy:430,  type:'AI PC',     sector:'AI族群',  holdType:'wave', tp1:580,  tp2:680,  sl:405,  note:'AI PC概念，波段' },
+  { code:'4938', name:'和碩',    yahoo:'4938.TW', buy:95,   strongBuy:82,   type:'AI伺服器',  sector:'AI族群',  holdType:'wave', tp1:120,  tp2:145,  sl:75,   note:'CSP伺服器組裝，波段' },
+  { code:'6415', name:'矽力-KY', yahoo:'6415.TW', buy:1800, strongBuy:1600, type:'AI電源',    sector:'AI族群',  holdType:'hold', tp1:2200, tp2:2600, sl:1480, note:'電源管理IC龍頭，可存股' },
+  { code:'2317', name:'鴻海',    yahoo:'2317.TW', buy:175,  strongBuy:155,  type:'AI伺服器',  sector:'AI族群',  holdType:'hold', tp1:220,  tp2:270,  sl:145,  note:'MS+Oracle主供應商，存股' },
+  { code:'3324', name:'雙鴻',    yahoo:'3324.TW', buy:480,  strongBuy:420,  type:'AI散熱',    sector:'AI族群',  holdType:'wave', tp1:600,  tp2:720,  sl:395,  note:'液冷散熱，高波動波段' },
+  { code:'2377', name:'微星',    yahoo:'2377.TW', buy:170,  strongBuy:150,  type:'AI GPU',    sector:'AI族群',  holdType:'wave', tp1:215,  tp2:260,  sl:138,  note:'AI工作站，波段' },
+  // ── 先進封裝 ──
+  { code:'3711', name:'日月光',  yahoo:'3711.TW', buy:145,  strongBuy:128,  type:'先進封裝',  sector:'先進封裝', holdType:'hold', tp1:185,  tp2:220,  sl:118,  note:'CoWoS龍頭，供不應求，存股' },
+  { code:'6239', name:'力成',    yahoo:'6239.TW', buy:230,  strongBuy:200,  type:'先進封裝',  sector:'先進封裝', holdType:'wave', tp1:290,  tp2:350,  sl:188,  note:'HBM封裝受惠，波段' },
+  { code:'3264', name:'欣銓',    yahoo:'3264.TW', buy:105,  strongBuy:90,   type:'封裝測試',  sector:'先進封裝', holdType:'wave', tp1:135,  tp2:165,  sl:82,   note:'日月光外溢效果，波段' },
+  { code:'6257', name:'矽格',    yahoo:'6257.TW', buy:68,   strongBuy:58,   type:'封裝測試',  sector:'先進封裝', holdType:'wave', tp1:88,   tp2:108,  sl:54,   note:'CoWoS耗材國產化，波段' },
+  // ── 機器人 ──
+  { code:'2049', name:'上銀',    yahoo:'2049.TW', buy:360,  strongBuy:310,  type:'機器人零件',sector:'機器人',   holdType:'wave', tp1:450,  tp2:540,  sl:290,  note:'滾珠螺桿龍頭，機器人必需，波段' },
+  { code:'2395', name:'研華',    yahoo:'2395.TW', buy:310,  strongBuy:275,  type:'工業電腦',  sector:'機器人',   holdType:'hold', tp1:385,  tp2:460,  sl:255,  note:'邊緣AI+工廠自動化，可存股' },
+  // ── 國防/無人機 ──
+  { code:'8033', name:'雷虎',    yahoo:'8033.TW', buy:148,  strongBuy:128,  type:'無人機',    sector:'國防',     holdType:'wave', tp1:185,  tp2:230,  sl:118,  note:'⚠️已持有！台灣無人機龍頭，波段' },
+  { code:'1503', name:'士林電機',yahoo:'1503.TW', buy:95,   strongBuy:82,   type:'電力設備',  sector:'國防',     holdType:'wave', tp1:120,  tp2:145,  sl:75,   note:'台灣電網升級+國防設備，波段' },
+  // ── 太空 ──
+  { code:'2314', name:'台揚',    yahoo:'2314.TW', buy:55,   strongBuy:45,   type:'衛星通訊',  sector:'太空',     holdType:'wave', tp1:72,   tp2:90,   sl:42,   note:'台灣衛星通訊設備，小倉波段' },
+];
+
+// ─────────────────────────────────────────────
+// YAHOO SYMBOL MAP
+// ─────────────────────────────────────────────
+const yahooSymbolMap = {
+  // 美股
+  'BRK/B' : 'BRK-B',
+  'NVDA'  : 'NVDA',
+  'PLTR'  : 'PLTR',
+  'QQQ'   : 'QQQ',
+  'TSLA'  : 'TSLA',
+  'TSM'   : 'TSM',
+  // 台股
+  '0050'  : '0050.TW',
+  '2330'  : '2330.TW',
+  '009816': '009816.TW',
+  '00981A': '00981A.TWO',
+  '00988A': '00988A.TWO',
+  '2454'  : '2454.TW',
+  '3135'  : '3135.TW',
+  '5292'  : '5292.TW',
+  '8033'  : '8033.TW',
+  // watchlist
+  'MSFT':'MSFT','GOOGL':'GOOGL','META':'META','AMZN':'AMZN','AMD':'AMD','ARM':'ARM','SMCI':'SMCI','MRVL':'MRVL','ALAB':'ALAB','ANET':'ANET',
+  '2379':'2379.TW','2308':'2308.TW','3034':'3034.TW','6669':'6669.TW','2382':'2382.TW','3231':'3231.TW','2357':'2357.TW','4938':'4938.TW','6415':'6415.TW','2317':'2317.TW','3324':'3324.TW','2377':'2377.TW',
+};
+
+// ─────────────────────────────────────────────
+// LIVE PRICE FETCH
+// ─────────────────────────────────────────────
+let livePrices = {};
+
+async function fetchLivePrices() {
+  const statusEl = document.getElementById('priceStatus');
+  if (statusEl) { statusEl.textContent = '更新中...'; statusEl.style.color = 'var(--muted)'; }
+
+  try {
+    const res = await fetch('/api/prices');
+    if (!res.ok) throw new Error('API error');
+    const data = await res.json();
+    livePrices = data.prices;
+
+    // Update all stock prices in data arrays
+    const allStocks = [...holdUS, ...holdTW, ...waveUS, ...waveTW];
+    allStocks.forEach(s => {
+      const ySymbol = yahooSymbolMap[s.code];
+      if (!ySymbol || !livePrices[ySymbol]) return;
+      const lp = livePrices[ySymbol];
+      if (!lp) return;
+      s.price = lp.price;
+      s.ret = s.cost ? Math.round(((lp.price - s.cost) / s.cost) * 10000) / 100 : s.ret;
+    });
+
+    // Re-render tables with live prices
+    document.getElementById('holdUsTable').innerHTML = '';
+    document.getElementById('holdTwTable').innerHTML = '';
+    document.getElementById('holdFundTable').innerHTML = '';
+    document.getElementById('waveUsTable').innerHTML = '';
+    document.getElementById('waveTwTable').innerHTML = '';
+    document.getElementById('returnChart').innerHTML = '';
+
+    renderHoldTable(holdUS, 'holdUsTable');
+    renderHoldTable(holdTW, 'holdTwTable');
+    renderHoldTable(holdFunds, 'holdFundTable');
+    renderWaveTable(waveUS, 'waveUsTable', false);
+    renderWaveTable(waveTW, 'waveTwTable', true);
+    renderReturnChart();
+    renderWatchlist(livePrices);
+
+    // Update header time
+    const now = new Date();
+    const timeStr = now.toLocaleString('zh-TW', { month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit' });
+    document.getElementById('updateTime').textContent = timeStr;
+    if (statusEl) { statusEl.textContent = '● 即時報價'; statusEl.style.color = 'var(--green)'; }
+
+  } catch (err) {
+    console.warn('Live price fetch failed, using static data:', err);
+    if (statusEl) { statusEl.textContent = '● 靜態數據'; statusEl.style.color = 'var(--yellow)'; }
+    // Fall back to static render
+    renderHoldTable(holdUS, 'holdUsTable');
+    renderHoldTable(holdTW, 'holdTwTable');
+    renderHoldTable(holdFunds, 'holdFundTable');
+    renderWaveTable(waveUS, 'waveUsTable', false);
+    renderWaveTable(waveTW, 'waveTwTable', true);
+    renderReturnChart();
+    document.getElementById('updateTime').textContent = new Date().toLocaleDateString('zh-TW') + ' (靜態)';
+  }
+}
+
+// ─────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────
+document.getElementById('updateTime').textContent = '載入中...';
+
+// First render with static data immediately (fast)
+renderHoldTable(holdUS, 'holdUsTable');
+renderHoldTable(holdTW, 'holdTwTable');
+renderHoldTable(holdFunds, 'holdFundTable');
+renderWaveTable(waveUS, 'waveUsTable', false);
+renderWaveTable(waveTW, 'waveTwTable', true);
+renderReturnChart();
+
+// Then fetch live prices and update
+fetchLivePrices();
+
+// Auto-refresh every 5 minutes
+setInterval(fetchLivePrices, 5 * 60 * 1000);
+</script>
+</body>
+</html>
+<script>
+// ── PIN LOCK ──
+const CORRECT = '0000';
+let pinEntry = '';
+
+function pinPress(d) {
+  if (pinEntry.length >= 4) return;
+  pinEntry += d;
+  updateDots();
+  if (pinEntry.length === 4) {
+    setTimeout(checkPin, 150);
+  }
+}
+
+function pinDel() {
+  pinEntry = pinEntry.slice(0, -1);
+  updateDots();
+}
+
+function updateDots() {
+  for (let i = 0; i < 4; i++) {
+    const dot = document.getElementById('d' + i);
+    dot.classList.toggle('filled', i < pinEntry.length);
+    dot.classList.remove('error');
+  }
+}
+
+function checkPin() {
+  if (pinEntry === CORRECT) {
+    document.getElementById('lockScreen').classList.add('hidden');
+  } else {
+    for (let i = 0; i < 4; i++) {
+      document.getElementById('d' + i).classList.add('error');
+    }
+    document.getElementById('lockHint').textContent = '密碼錯誤，請再試一次';
+    setTimeout(() => {
+      pinEntry = '';
+      updateDots();
+      document.getElementById('lockHint').textContent = '輸入 4 位數密碼';
+    }, 800);
+  }
+}
+
+// Keyboard support
+document.addEventListener('keydown', e => {
+  if (document.getElementById('lockScreen').classList.contains('hidden')) return;
+  if (e.key >= '0' && e.key <= '9') pinPress(e.key);
+  if (e.key === 'Backspace') pinDel();
+});
+</script>
