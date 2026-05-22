@@ -950,6 +950,9 @@ function cpMeta(score) {
   return { txt:'C 級', color:'#a0a0c0' };
 }
 
+let activeSector = 'all';
+let lastPricesCache = {};
+
 function renderWatchlist(prices) {
   lastPricesCache = prices;
   let allWatch = [
@@ -1150,9 +1153,6 @@ function renderWatchlist(prices) {
 // ─────────────────────────────────────────────
 // SECTOR FILTER
 // ─────────────────────────────────────────────
-let activeSector = 'all';
-let lastPricesCache = {};
-
 function setSector(sector) {
   activeSector = sector;
   document.querySelectorAll('.sfbtn').forEach(b => {
@@ -1372,54 +1372,54 @@ function runAIFromBtn() {}
 // ── tp1: 波段第一目標  tp2: 波段滿倉出場目標  sl: 停損
 // ── AI族群 ──
 const watchUS = [
-  { code:'MSFT',  name:'微軟',          yahoo:'MSFT',  buy:380,  strongBuy:350, type:'AI平台',    sector:'AI族群', holdType:'hold', tp1:450,  tp2:520,  sl:340,  note:'Azure OpenAI雲端龍頭，適合長期持有' },
-  { code:'GOOGL', name:'Alphabet',      yahoo:'GOOGL', buy:155,  strongBuy:140, type:'AI平台',    sector:'AI族群', holdType:'hold', tp1:190,  tp2:220,  sl:138,  note:'Gemini+TPU自研晶片，長期存股' },
-  { code:'META',  name:'Meta',          yahoo:'META',  buy:520,  strongBuy:470, type:'AI應用',    sector:'AI族群', holdType:'wave', tp1:640,  tp2:750,  sl:470,  note:'AI廣告爆發，波段操作' },
-  { code:'AMZN',  name:'Amazon',        yahoo:'AMZN',  buy:185,  strongBuy:165, type:'AI雲端',    sector:'AI族群', holdType:'hold', tp1:230,  tp2:270,  sl:162,  note:'AWS AI投資最大，長期持有' },
-  { code:'AMD',   name:'AMD',           yahoo:'AMD',   buy:105,  strongBuy:90,  type:'AI晶片',    sector:'AI族群', holdType:'wave', tp1:140,  tp2:180,  sl:85,   note:'MI450挑戰NVDA，高波動波段' },
-  { code:'ARM',   name:'ARM Holdings',  yahoo:'ARM',   buy:100,  strongBuy:85,  type:'AI晶片',    sector:'AI族群', holdType:'wave', tp1:135,  tp2:165,  sl:80,   note:'AI處理器架構授權，波段' },
-  { code:'SMCI',  name:'超微電腦',       yahoo:'SMCI',  buy:38,   strongBuy:30,  type:'AI伺服器',  sector:'AI族群', holdType:'wave', tp1:55,   tp2:75,   sl:27,   note:'高波動，嚴設停損' },
-  { code:'MRVL',  name:'Marvell',       yahoo:'MRVL',  buy:65,   strongBuy:55,  type:'AI晶片',    sector:'AI族群', holdType:'wave', tp1:88,   tp2:108,  sl:52,   note:'ASIC客製晶片，波段操作' },
-  { code:'ALAB',  name:'Astera Labs',   yahoo:'ALAB',  buy:80,   strongBuy:65,  type:'AI連結',    sector:'AI族群', holdType:'wave', tp1:110,  tp2:135,  sl:60,   note:'AI資料中心連結晶片，波段' },
-  { code:'ANET',  name:'Arista',        yahoo:'ANET',  buy:95,   strongBuy:80,  type:'AI網路',    sector:'AI族群', holdType:'hold', tp1:130,  tp2:160,  sl:78,   note:'AI資料中心網路，可存股' },
+  { code:'MSFT',  name:'微軟',          yahoo:'MSFT',  price:430, buy:380,  strongBuy:350, type:'AI平台',    sector:'AI族群', holdType:'hold', tp1:450,  tp2:520,  sl:340,  note:'Azure OpenAI雲端龍頭，適合長期持有' },
+  { code:'GOOGL', name:'Alphabet',      yahoo:'GOOGL', price:170, buy:155,  strongBuy:140, type:'AI平台',    sector:'AI族群', holdType:'hold', tp1:190,  tp2:220,  sl:138,  note:'Gemini+TPU自研晶片，長期存股' },
+  { code:'META',  name:'Meta',          yahoo:'META',  price:640, buy:520,  strongBuy:470, type:'AI應用',    sector:'AI族群', holdType:'wave', tp1:640,  tp2:750,  sl:470,  note:'AI廣告爆發，波段操作' },
+  { code:'AMZN',  name:'Amazon',        yahoo:'AMZN',  price:215, buy:185,  strongBuy:165, type:'AI雲端',    sector:'AI族群', holdType:'hold', tp1:230,  tp2:270,  sl:162,  note:'AWS AI投資最大，長期持有' },
+  { code:'AMD',   name:'AMD',           yahoo:'AMD',   price:120, buy:105,  strongBuy:90,  type:'AI晶片',    sector:'AI族群', holdType:'wave', tp1:140,  tp2:180,  sl:85,   note:'MI450挑戰NVDA，高波動波段' },
+  { code:'ARM',   name:'ARM Holdings',  yahoo:'ARM',   price:135, buy:100,  strongBuy:85,  type:'AI晶片',    sector:'AI族群', holdType:'wave', tp1:135,  tp2:165,  sl:80,   note:'AI處理器架構授權，波段' },
+  { code:'SMCI',  name:'超微電腦',       yahoo:'SMCI',  price:45,  buy:38,   strongBuy:30,  type:'AI伺服器',  sector:'AI族群', holdType:'wave', tp1:55,   tp2:75,   sl:27,   note:'高波動，嚴設停損' },
+  { code:'MRVL',  name:'Marvell',       yahoo:'MRVL',  price:85,  buy:65,   strongBuy:55,  type:'AI晶片',    sector:'AI族群', holdType:'wave', tp1:88,   tp2:108,  sl:52,   note:'ASIC客製晶片，波段操作' },
+  { code:'ALAB',  name:'Astera Labs',   yahoo:'ALAB',  price:105, buy:80,   strongBuy:65,  type:'AI連結',    sector:'AI族群', holdType:'wave', tp1:110,  tp2:135,  sl:60,   note:'AI資料中心連結晶片，波段' },
+  { code:'ANET',  name:'Arista',        yahoo:'ANET',  price:110, buy:95,   strongBuy:80,  type:'AI網路',    sector:'AI族群', holdType:'hold', tp1:130,  tp2:160,  sl:78,   note:'AI資料中心網路，可存股' },
   // ── AI電力/核能 ──
-  { code:'CEG',   name:'Constellation', yahoo:'CEG',   buy:220,  strongBuy:190, type:'核能',      sector:'AI電力', holdType:'hold', tp1:280,  tp2:340,  sl:175,  note:'美國最大核電商，長期存股' },
-  { code:'VST',   name:'Vistra',        yahoo:'VST',   buy:140,  strongBuy:118, type:'電力',      sector:'AI電力', holdType:'wave', tp1:185,  tp2:230,  sl:108,  note:'高波動，波段操作' },
-  { code:'GEV',   name:'GE Vernova',    yahoo:'GEV',   buy:280,  strongBuy:245, type:'電網',      sector:'AI電力', holdType:'hold', tp1:350,  tp2:420,  sl:225,  note:'電網升級長期受惠，存股' },
-  { code:'ETN',   name:'Eaton',         yahoo:'ETN',   buy:290,  strongBuy:260, type:'電力設備',  sector:'AI電力', holdType:'hold', tp1:360,  tp2:420,  sl:245,  note:'資料中心電力基礎設施，存股' },
+  { code:'CEG',   name:'Constellation', yahoo:'CEG',   price:260, buy:220,  strongBuy:190, type:'核能',      sector:'AI電力', holdType:'hold', tp1:280,  tp2:340,  sl:175,  note:'美國最大核電商，長期存股' },
+  { code:'VST',   name:'Vistra',        yahoo:'VST',   price:175, buy:140,  strongBuy:118, type:'電力',      sector:'AI電力', holdType:'wave', tp1:185,  tp2:230,  sl:108,  note:'高波動，波段操作' },
+  { code:'GEV',   name:'GE Vernova',    yahoo:'GEV',   price:380, buy:280,  strongBuy:245, type:'電網',      sector:'AI電力', holdType:'hold', tp1:350,  tp2:420,  sl:225,  note:'電網升級長期受惠，存股' },
+  { code:'ETN',   name:'Eaton',         yahoo:'ETN',   price:365, buy:290,  strongBuy:260, type:'電力設備',  sector:'AI電力', holdType:'hold', tp1:360,  tp2:420,  sl:245,  note:'資料中心電力基礎設施，存股' },
   // ── 機器人/太空 ──
-  { code:'TER',   name:'Teradyne',      yahoo:'TER',   buy:95,   strongBuy:80,  type:'機器人測試',sector:'機器人', holdType:'wave', tp1:130,  tp2:160,  sl:72,   note:'協作機器人UR，波段' },
-  { code:'RKLB',  name:'Rocket Lab',    yahoo:'RKLB',  buy:18,   strongBuy:13,  type:'太空',      sector:'太空',   holdType:'wave', tp1:28,   tp2:40,   sl:10,   note:'高風險高報酬，小倉波段' },
-  { code:'LUNR',  name:'Intuitive Mach',yahoo:'LUNR',  buy:12,   strongBuy:8,   type:'太空',      sector:'太空',   holdType:'wave', tp1:20,   tp2:32,   sl:6,    note:'最高風險，超小倉位試水' },
+  { code:'TER',   name:'Teradyne',      yahoo:'TER',   price:115, buy:95,   strongBuy:80,  type:'機器人測試',sector:'機器人', holdType:'wave', tp1:130,  tp2:160,  sl:72,   note:'協作機器人UR，波段' },
+  { code:'RKLB',  name:'Rocket Lab',    yahoo:'RKLB',  price:22,  buy:18,   strongBuy:13,  type:'太空',      sector:'太空',   holdType:'wave', tp1:28,   tp2:40,   sl:10,   note:'高風險高報酬，小倉波段' },
+  { code:'LUNR',  name:'Intuitive Mach',yahoo:'LUNR',  price:14,  buy:12,   strongBuy:8,   type:'太空',      sector:'太空',   holdType:'wave', tp1:20,   tp2:32,   sl:6,    note:'最高風險，超小倉位試水' },
 ];
 
 const watchTW = [
   // ── AI族群 ──
-  { code:'2379', name:'瑞昱',    yahoo:'2379.TW', buy:620,  strongBuy:560,  type:'AI晶片',    sector:'AI族群',  holdType:'wave', tp1:750,  tp2:880,  sl:540,  note:'網通+AI邊緣運算晶片，波段' },
-  { code:'2308', name:'台達電',  yahoo:'2308.TW', buy:320,  strongBuy:290,  type:'AI電源',    sector:'AI族群',  holdType:'hold', tp1:400,  tp2:480,  sl:275,  note:'馬達+電源雙受惠，可存股' },
-  { code:'3034', name:'聯詠',    yahoo:'3034.TW', buy:290,  strongBuy:260,  type:'AI晶片',    sector:'AI族群',  holdType:'wave', tp1:360,  tp2:430,  sl:248,  note:'顯示驅動IC，波段' },
-  { code:'6669', name:'緯穎',    yahoo:'6669.TW', buy:2000, strongBuy:1800, type:'AI伺服器',  sector:'AI族群',  holdType:'wave', tp1:2500, tp2:3000, sl:1650, note:'GB300 ODM，高波動波段' },
-  { code:'2382', name:'廣達',    yahoo:'2382.TW', buy:220,  strongBuy:195,  type:'AI伺服器',  sector:'AI族群',  holdType:'wave', tp1:280,  tp2:340,  sl:185,  note:'雲端AI伺服器，波段' },
-  { code:'3231', name:'緯創',    yahoo:'3231.TW', buy:150,  strongBuy:130,  type:'AI伺服器',  sector:'AI族群',  holdType:'wave', tp1:190,  tp2:230,  sl:125,  note:'Dell獨家，目標190元，波段' },
-  { code:'2357', name:'華碩',    yahoo:'2357.TW', buy:480,  strongBuy:430,  type:'AI PC',     sector:'AI族群',  holdType:'wave', tp1:580,  tp2:680,  sl:405,  note:'AI PC概念，波段' },
-  { code:'4938', name:'和碩',    yahoo:'4938.TW', buy:95,   strongBuy:82,   type:'AI伺服器',  sector:'AI族群',  holdType:'wave', tp1:120,  tp2:145,  sl:75,   note:'CSP伺服器組裝，波段' },
-  { code:'6415', name:'矽力-KY', yahoo:'6415.TW', buy:1800, strongBuy:1600, type:'AI電源',    sector:'AI族群',  holdType:'hold', tp1:2200, tp2:2600, sl:1480, note:'電源管理IC龍頭，可存股' },
-  { code:'2317', name:'鴻海',    yahoo:'2317.TW', buy:175,  strongBuy:155,  type:'AI伺服器',  sector:'AI族群',  holdType:'hold', tp1:220,  tp2:270,  sl:145,  note:'MS+Oracle主供應商，存股' },
-  { code:'3324', name:'雙鴻',    yahoo:'3324.TW', buy:480,  strongBuy:420,  type:'AI散熱',    sector:'AI族群',  holdType:'wave', tp1:600,  tp2:720,  sl:395,  note:'液冷散熱，高波動波段' },
-  { code:'2377', name:'微星',    yahoo:'2377.TW', buy:170,  strongBuy:150,  type:'AI GPU',    sector:'AI族群',  holdType:'wave', tp1:215,  tp2:260,  sl:138,  note:'AI工作站，波段' },
+  { code:'2379', name:'瑞昱',    yahoo:'2379.TW', price:650, buy:620,  strongBuy:560,  type:'AI晶片',    sector:'AI族群',  holdType:'wave', tp1:750,  tp2:880,  sl:540,  note:'網通+AI邊緣運算晶片，波段' },
+  { code:'2308', name:'台達電',  yahoo:'2308.TW', price:380, buy:320,  strongBuy:290,  type:'AI電源',    sector:'AI族群',  holdType:'hold', tp1:400,  tp2:480,  sl:275,  note:'馬達+電源雙受惠，可存股' },
+  { code:'3034', name:'聯詠',    yahoo:'3034.TW', price:320, buy:290,  strongBuy:260,  type:'AI晶片',    sector:'AI族群',  holdType:'wave', tp1:360,  tp2:430,  sl:248,  note:'顯示驅動IC，波段' },
+  { code:'6669', name:'緯穎',    yahoo:'6669.TW', price:2200, buy:2000, strongBuy:1800, type:'AI伺服器',  sector:'AI族群',  holdType:'wave', tp1:2500, tp2:3000, sl:1650, note:'GB300 ODM，高波動波段' },
+  { code:'2382', name:'廣達',    yahoo:'2382.TW', price:255, buy:220,  strongBuy:195,  type:'AI伺服器',  sector:'AI族群',  holdType:'wave', tp1:280,  tp2:340,  sl:185,  note:'雲端AI伺服器，波段' },
+  { code:'3231', name:'緯創',    yahoo:'3231.TW', price:162, buy:150,  strongBuy:130,  type:'AI伺服器',  sector:'AI族群',  holdType:'wave', tp1:190,  tp2:230,  sl:125,  note:'Dell獨家，目標190元，波段' },
+  { code:'2357', name:'華碩',    yahoo:'2357.TW', price:520, buy:480,  strongBuy:430,  type:'AI PC',     sector:'AI族群',  holdType:'wave', tp1:580,  tp2:680,  sl:405,  note:'AI PC概念，波段' },
+  { code:'4938', name:'和碩',    yahoo:'4938.TW', price:105, buy:95,   strongBuy:82,   type:'AI伺服器',  sector:'AI族群',  holdType:'wave', tp1:120,  tp2:145,  sl:75,   note:'CSP伺服器組裝，波段' },
+  { code:'6415', name:'矽力-KY', yahoo:'6415.TW', price:2100, buy:1800, strongBuy:1600, type:'AI電源',    sector:'AI族群',  holdType:'hold', tp1:2200, tp2:2600, sl:1480, note:'電源管理IC龍頭，可存股' },
+  { code:'2317', name:'鴻海',    yahoo:'2317.TW', price:195, buy:175,  strongBuy:155,  type:'AI伺服器',  sector:'AI族群',  holdType:'hold', tp1:220,  tp2:270,  sl:145,  note:'MS+Oracle主供應商，存股' },
+  { code:'3324', name:'雙鴻',    yahoo:'3324.TW', price:510, buy:480,  strongBuy:420,  type:'AI散熱',    sector:'AI族群',  holdType:'wave', tp1:600,  tp2:720,  sl:395,  note:'液冷散熱，高波動波段' },
+  { code:'2377', name:'微星',    yahoo:'2377.TW', price:185, buy:170,  strongBuy:150,  type:'AI GPU',    sector:'AI族群',  holdType:'wave', tp1:215,  tp2:260,  sl:138,  note:'AI工作站，波段' },
   // ── 先進封裝 ──
-  { code:'3711', name:'日月光',  yahoo:'3711.TW', buy:145,  strongBuy:128,  type:'先進封裝',  sector:'先進封裝', holdType:'hold', tp1:185,  tp2:220,  sl:118,  note:'CoWoS龍頭，供不應求，存股' },
-  { code:'6239', name:'力成',    yahoo:'6239.TW', buy:230,  strongBuy:200,  type:'先進封裝',  sector:'先進封裝', holdType:'wave', tp1:290,  tp2:350,  sl:188,  note:'HBM封裝受惠，波段' },
-  { code:'3264', name:'欣銓',    yahoo:'3264.TW', buy:105,  strongBuy:90,   type:'封裝測試',  sector:'先進封裝', holdType:'wave', tp1:135,  tp2:165,  sl:82,   note:'日月光外溢效果，波段' },
-  { code:'6257', name:'矽格',    yahoo:'6257.TW', buy:68,   strongBuy:58,   type:'封裝測試',  sector:'先進封裝', holdType:'wave', tp1:88,   tp2:108,  sl:54,   note:'CoWoS耗材國產化，波段' },
+  { code:'3711', name:'日月光',  yahoo:'3711.TW', price:158, buy:145,  strongBuy:128,  type:'先進封裝',  sector:'先進封裝', holdType:'hold', tp1:185,  tp2:220,  sl:118,  note:'CoWoS龍頭，供不應求，存股' },
+  { code:'6239', name:'力成',    yahoo:'6239.TW', price:255, buy:230,  strongBuy:200,  type:'先進封裝',  sector:'先進封裝', holdType:'wave', tp1:290,  tp2:350,  sl:188,  note:'HBM封裝受惠，波段' },
+  { code:'3264', name:'欣銓',    yahoo:'3264.TW', price:112, buy:105,  strongBuy:90,   type:'封裝測試',  sector:'先進封裝', holdType:'wave', tp1:135,  tp2:165,  sl:82,   note:'日月光外溢效果，波段' },
+  { code:'6257', name:'矽格',    yahoo:'6257.TW', price:75,  buy:68,   strongBuy:58,   type:'封裝測試',  sector:'先進封裝', holdType:'wave', tp1:88,   tp2:108,  sl:54,   note:'CoWoS耗材國產化，波段' },
   // ── 機器人 ──
-  { code:'2049', name:'上銀',    yahoo:'2049.TW', buy:360,  strongBuy:310,  type:'機器人零件',sector:'機器人',   holdType:'wave', tp1:450,  tp2:540,  sl:290,  note:'滾珠螺桿龍頭，機器人必需，波段' },
-  { code:'2395', name:'研華',    yahoo:'2395.TW', buy:310,  strongBuy:275,  type:'工業電腦',  sector:'機器人',   holdType:'hold', tp1:385,  tp2:460,  sl:255,  note:'邊緣AI+工廠自動化，可存股' },
+  { code:'2049', name:'上銀',    yahoo:'2049.TW', price:400, buy:360,  strongBuy:310,  type:'機器人零件',sector:'機器人',   holdType:'wave', tp1:450,  tp2:540,  sl:290,  note:'滾珠螺桿龍頭，機器人必需，波段' },
+  { code:'2395', name:'研華',    yahoo:'2395.TW', price:340, buy:310,  strongBuy:275,  type:'工業電腦',  sector:'機器人',   holdType:'hold', tp1:385,  tp2:460,  sl:255,  note:'邊緣AI+工廠自動化，可存股' },
   // ── 國防/無人機 ──
-  { code:'8033', name:'雷虎',    yahoo:'8033.TW', buy:148,  strongBuy:128,  type:'無人機',    sector:'國防',     holdType:'wave', tp1:185,  tp2:230,  sl:118,  note:'⚠️已持有！台灣無人機龍頭，波段' },
-  { code:'1503', name:'士林電機',yahoo:'1503.TW', buy:95,   strongBuy:82,   type:'電力設備',  sector:'國防',     holdType:'wave', tp1:120,  tp2:145,  sl:75,   note:'台灣電網升級+國防設備，波段' },
+  { code:'8033', name:'雷虎',    yahoo:'8033.TW', price:138, buy:148,  strongBuy:128,  type:'無人機',    sector:'國防',     holdType:'wave', tp1:185,  tp2:230,  sl:118,  note:'⚠️已持有！台灣無人機龍頭，波段' },
+  { code:'1503', name:'士林電機',yahoo:'1503.TW', price:102, buy:95,   strongBuy:82,   type:'電力設備',  sector:'國防',     holdType:'wave', tp1:120,  tp2:145,  sl:75,   note:'台灣電網升級+國防設備，波段' },
   // ── 太空 ──
-  { code:'2314', name:'台揚',    yahoo:'2314.TW', buy:55,   strongBuy:45,   type:'衛星通訊',  sector:'太空',     holdType:'wave', tp1:72,   tp2:90,   sl:42,   note:'台灣衛星通訊設備，小倉波段' },
+  { code:'2314', name:'台揚',    yahoo:'2314.TW', price:62,  buy:55,   strongBuy:45,   type:'衛星通訊',  sector:'太空',     holdType:'wave', tp1:72,   tp2:90,   sl:42,   note:'台灣衛星通訊設備，小倉波段' },
 ];
 
 // ─────────────────────────────────────────────
