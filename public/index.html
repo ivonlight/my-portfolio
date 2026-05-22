@@ -502,7 +502,7 @@ main { padding:2rem 2.5rem; max-width:1440px; margin:0 auto; }
   </div>
   <table class="stk-table">
     <thead><tr>
-      <th>標的</th><th>均價</th><th style="text-align:right">輸入現價</th>
+      <th>標的</th><th>均價</th><th>持股數</th><th style="text-align:right">輸入現價</th>
       <th>報酬率</th><th>停利目標</th><th>停損線</th><th>警示</th><th>訊號</th>
     </tr></thead>
     <tbody id="waveUsTable"></tbody>
@@ -513,7 +513,7 @@ main { padding:2rem 2.5rem; max-width:1440px; margin:0 auto; }
   </div>
   <table class="stk-table">
     <thead><tr>
-      <th>標的</th><th>均價</th><th style="text-align:right">輸入現價</th>
+      <th>標的</th><th>均價</th><th>持股數</th><th style="text-align:right">輸入現價</th>
       <th>報酬率</th><th>停利目標</th><th>停損線</th><th>警示</th><th>訊號</th>
     </tr></thead>
     <tbody id="waveTwTable"></tbody>
@@ -629,19 +629,18 @@ main { padding:2rem 2.5rem; max-width:1440px; margin:0 auto; }
 const holdUS = [
   {
     code:'BRK/B', name:'Berkshire Hathaway',
-    cost: 474.5, // blended (3 @ 463 + 4.57 @ 488)
+    cost: 474.52, shares: 7.56973, // 加權均價：3股@$463.22 + 4.57股@$488.32
     price: 479.98,
-    // Buy zones
     strongBuy: 440, buy: 460, fair: 480, rich: 510,
-    note:'巴菲特護城河。現價接近均價，合理偏高。跌至 $460 以下為理想加碼點。',
+    note:'巴菲特護城河。共7.57股，均價$474.52。跌至$460以下為理想加碼點。',
     isTW: false
   },
   {
     code:'QQQ', name:'Invesco QQQ',
-    cost: 571, // blended (1 @ 594 + 2.06 @ 563)
+    cost: 571.05, shares: 3.06421, // 加權均價：1股@$594.07 + 2.06股@$563.07
     price: 714.51,
     strongBuy: 620, buy: 660, fair: 720, rich: 760,
-    note:'現價已大幅超過均價（+25%），處於偏高區。勿追，等回調至 $660 再考慮加碼。',
+    note:'共3.06股，均價$571.05。現價+25%偏高，等回調$660再加碼。',
     isTW: false
   }
 ];
@@ -688,20 +687,20 @@ const holdFunds = [
   }
 ];
 
-// 波段標的
+// 波段標的（均價已合併加權平均）
 const waveUS = [
-  { code:'NVDA', name:'NVIDIA', cost:178, price:219.51, ret:24.81, tp1:240, tp2:260, sl:195, signal:'warn', note:'兩批成本 $152/$204，建議先出高成本批' },
-  { code:'TSLA', name:'Tesla', cost:303.57, price:417.85, ret:37.65, tp1:450, tp2:500, sl:370, signal:'sell', note:'獲利豐厚，可掛移動停利' },
-  { code:'PLTR', name:'Palantir', cost:133.11, price:137.42, ret:3.23, tp1:155, tp2:170, sl:125, signal:'hold', note:'倉位小，空間有限' },
-  { code:'TSM', name:'TSMC ADR', cost:340.34, price:407.15, ret:19.63, tp1:440, tp2:480, sl:370, signal:'warn', note:'與台積電重疊，留意總曝險' }
+  { code:'NVDA', name:'NVIDIA',    cost:174.9,  price:219.51, ret:25.5,  tp1:240, tp2:260, sl:195, signal:'warn', shares:10.86983, note:'加權均價 $174.9（共10.87股）' },
+  { code:'TSLA', name:'Tesla',     cost:303.57, price:417.85, ret:37.65, tp1:450, tp2:500, sl:370, signal:'sell', shares:0.89042,  note:'獲利豐厚，可掛移動停利' },
+  { code:'PLTR', name:'Palantir',  cost:133.11, price:137.42, ret:3.23,  tp1:155, tp2:170, sl:125, signal:'hold', shares:1,        note:'倉位小，空間有限' },
+  { code:'TSM',  name:'TSMC ADR',  cost:340.34, price:407.15, ret:19.63, tp1:440, tp2:480, sl:370, signal:'warn', shares:0.29412,  note:'與台積電重疊，留意總曝險' },
 ];
 const waveTW = [
-  { code:'009816', name:'凱基台灣T', cost:12.88, price:14.19, ret:9.95, tp1:15.5, tp2:16.5, sl:13.5, signal:'hold', note:'ETF，震盪持有' },
-  { code:'00981A', name:'主動統一台股', cost:26.56, price:29.95, ret:12.60, tp1:32, tp2:35, sl:27, signal:'hold', note:'主動ETF，關注淨值' },
-  { code:'2454', name:'聯發科', cost:3205, price:3860, ret:20.02, tp1:4200, tp2:4500, sl:3500, signal:'sell', note:'AI族群動能強' },
-  { code:'3135', name:'凌航', cost:197, price:211.5, ret:6.97, tp1:230, tp2:250, sl:195, signal:'hold', note:'接近成本，停損設緊' },
-  { code:'5292', name:'華懋', cost:239.84, price:219.5, ret:-8.82, tp1:240, tp2:null, sl:210, signal:'stop', note:'⚠️ 唯一虧損' },
-  { code:'8033', name:'雷虎', cost:132, price:138, ret:4.18, tp1:150, tp2:165, sl:128, signal:'hold', note:'小倉位緊盯' }
+  { code:'009816', name:'凱基台灣T',   cost:12.88,  price:14.19,  ret:9.95,   tp1:15.5, tp2:16.5, sl:13.5, signal:'hold', shares:3225, note:'ETF，震盪持有' },
+  { code:'00981A', name:'主動統一台股', cost:26.56,  price:29.95,  ret:12.60,  tp1:32,   tp2:35,   sl:27,   signal:'hold', shares:1185, note:'主動ETF，關注淨值' },
+  { code:'2454',   name:'聯發科',       cost:3205,   price:3860,   ret:20.02,  tp1:4200, tp2:4500, sl:3500, signal:'sell', shares:2,    note:'AI族群動能強' },
+  { code:'3135',   name:'凌航',         cost:197,    price:211.5,  ret:6.97,   tp1:230,  tp2:250,  sl:195,  signal:'hold', shares:50,   note:'接近成本，停損設緊' },
+  { code:'5292',   name:'華懋',         cost:239.84, price:219.5,  ret:-8.82,  tp1:240,  tp2:null, sl:210,  signal:'stop', shares:44,   note:'⚠️ 唯一虧損' },
+  { code:'8033',   name:'雷虎',         cost:132,    price:138,    ret:4.18,   tp1:150,  tp2:165,  sl:128,  signal:'hold', shares:50,   note:'小倉位緊盯' },
 ];
 
 // ─────────────────────────────────────────────
@@ -837,9 +836,13 @@ function renderWaveTable(stocks, tbodyId, isTW) {
     const tr = document.createElement('tr');
     tr.style.animationDelay = `${.05*i+.05}s`;
     const sig = waveSigMap[s.signal];
+    const sharesStr = s.shares != null
+      ? (isTW ? s.shares.toLocaleString('zh-TW') : s.shares % 1 === 0 ? s.shares : s.shares.toFixed(2)) + ' 股'
+      : '—';
     tr.innerHTML = `
       <td><span class="sname">${s.name}</span><span class="scode">${s.code}</span></td>
       <td style="font-family:var(--mono)">${fmt(s.cost,isTW)}</td>
+      <td style="font-family:var(--mono);font-size:.72rem;color:var(--muted)">${sharesStr}</td>
       <td style="text-align:right">
         <input class="price-input" type="number" id="winp-${s.code}" value="${s.price}" step="${isTW?1:0.01}"
           onchange="updateWave('${s.code}',${isTW})" onkeydown="if(event.key==='Enter')updateWave('${s.code}',${isTW})">
