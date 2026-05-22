@@ -583,41 +583,39 @@ main { padding:2rem 2.5rem; max-width:1440px; margin:0 auto; }
 <!-- ══════════════ TAB: AI 分析 ══════════════ -->
 <div class="tab-panel" id="tab-ai">
   <div class="sec-hd" style="margin-top:.5rem">
-    <h2>AI 智能分析</h2><div class="ln"></div><div class="bdg">Claude Powered</div>
+    <h2>智能分析</h2><div class="ln"></div><div class="bdg">規則引擎 · 即時判斷</div>
   </div>
 
   <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;margin-bottom:1.5rem">
-    <div class="chart-card" style="padding:1.25rem;cursor:pointer" onclick="runAI('portfolio')">
+    <div class="chart-card" style="padding:1.25rem;cursor:pointer;transition:border-color .2s" onclick="runAnalysis('portfolio')"
+      onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor=''">
       <div style="font-family:var(--mono);font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem">分析一</div>
       <div style="font-size:.85rem;font-weight:600;margin-bottom:.35rem">整體組合健康度</div>
       <div style="font-size:.68rem;color:var(--muted);line-height:1.5">評估資產配置、曝險集中度、獲利鎖定時機</div>
     </div>
-    <div class="chart-card" style="padding:1.25rem;cursor:pointer" onclick="runAI('buy')">
+    <div class="chart-card" style="padding:1.25rem;cursor:pointer;transition:border-color .2s" onclick="runAnalysis('buy')"
+      onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor=''">
       <div style="font-family:var(--mono);font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem">分析二</div>
       <div style="font-size:.85rem;font-weight:600;margin-bottom:.35rem">存股加碼時機判斷</div>
       <div style="font-size:.68rem;color:var(--muted);line-height:1.5">針對 0050、台積電、BRK/B、QQQ 的加碼邏輯</div>
     </div>
-    <div class="chart-card" style="padding:1.25rem;cursor:pointer" onclick="runAI('risk')">
+    <div class="chart-card" style="padding:1.25rem;cursor:pointer;transition:border-color .2s" onclick="runAnalysis('risk')"
+      onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor=''">
       <div style="font-family:var(--mono);font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem">分析三</div>
       <div style="font-size:.85rem;font-weight:600;margin-bottom:.35rem">風險警示</div>
       <div style="font-size:.68rem;color:var(--muted);line-height:1.5">哪些部位需要特別關注或立即行動</div>
     </div>
   </div>
 
-  <div class="ai-panel">
+  <div class="action-panel">
     <div class="ai-panel-head">
       <h3 id="aiPanelTitle">點擊上方卡片開始分析</h3>
-      <button class="ai-btn" id="aiBtn" onclick="runAIFromBtn()" disabled>
-        <span class="spinner" id="aiSpinner" style="display:none"></span>
-        <span id="aiBtnTxt">分析</span>
-      </button>
     </div>
-    <div class="ai-output" id="aiOutput" style="color:var(--muted);font-size:.75rem">
-      選擇分析項目後，AI 會根據你的實際持倉數據給出具體建議。
+    <div id="aiOutput" style="color:var(--muted);font-size:.75rem;line-height:1.8">
+      選擇分析項目後，系統會根據你的實際持倉數據即時給出建議。
     </div>
   </div>
 </div>
-
 </main>
 
 <script>
@@ -755,6 +753,7 @@ function distFromCost(price, cost) {
 // ─────────────────────────────────────────────
 function renderHoldTable(stocks, tbodyId) {
   const tbody = document.getElementById(tbodyId);
+  tbody.innerHTML = '';
   stocks.forEach((s, i) => {
     const tr = document.createElement('tr');
     tr.style.animationDelay = `${.05*i+.05}s`;
@@ -832,6 +831,7 @@ function updateHold(code) {
 // ─────────────────────────────────────────────
 function renderWaveTable(stocks, tbodyId, isTW) {
   const tbody = document.getElementById(tbodyId);
+  tbody.innerHTML = '';
   stocks.forEach((s, i) => {
     const tr = document.createElement('tr');
     tr.style.animationDelay = `${.05*i+.05}s`;
@@ -1250,70 +1250,119 @@ function runAIFromBtn() {
   startAI(currentAIMode);
 }
 
-async function startAI(mode) {
-  const btn = document.getElementById('aiBtn');
-  const spinner = document.getElementById('aiSpinner');
-  const btnTxt = document.getElementById('aiBtnTxt');
-  const output = document.getElementById('aiOutput');
+// ─────────────────────────────────────────────
+// RULE-BASED ANALYSIS ENGINE (免費，無需API)
+// ─────────────────────────────────────────────
 
-  btn.disabled = true;
-  spinner.style.display = 'inline-block';
-  btnTxt.textContent = '分析中...';
-  output.textContent = '';
-  output.classList.add('loading');
-
-  const cursor = document.createElement('span');
-  cursor.className = 'ai-cursor';
-
-  try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        stream: true,
-        messages: [{ role: 'user', content: aiPrompts[mode] }]
-      })
-    });
-
-    output.classList.remove('loading');
-    output.textContent = '';
-    output.appendChild(cursor);
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop();
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          const data = line.slice(6).trim();
-          if (data === '[DONE]') continue;
-          try {
-            const json = JSON.parse(data);
-            if (json.type === 'content_block_delta' && json.delta?.text) {
-              output.insertBefore(document.createTextNode(json.delta.text), cursor);
-            }
-          } catch {}
-        }
-      }
-    }
-    cursor.remove();
-  } catch (err) {
-    output.classList.remove('loading');
-    output.textContent = '分析時發生錯誤：' + err.message;
-  } finally {
-    btn.disabled = false;
-    spinner.style.display = 'none';
-    btnTxt.textContent = '重新分析';
-  }
+function getCurrentPrices() {
+  const p = {};
+  [...waveUS, ...waveTW].forEach(s => {
+    const inp = document.getElementById('winp-' + s.code);
+    p[s.code] = inp ? parseFloat(inp.value)||s.price : s.price;
+  });
+  [...holdUS, ...holdTW].forEach(s => {
+    const inp = document.getElementById('inp-' + s.code);
+    p[s.code] = inp ? parseFloat(inp.value)||s.price : s.price;
+  });
+  return p;
 }
+
+function fmtSignal(icon, title, body, color) {
+  return `<div style="display:flex;gap:.75rem;padding:.85rem 1rem;background:var(--surface2);border:1px solid var(--border);border-left:3px solid ${color};border-radius:8px;margin-bottom:.6rem;animation:fadeUp .3s ease both">
+    <span style="font-size:1.1rem;flex-shrink:0">${icon}</span>
+    <div>
+      <div style="font-weight:600;font-size:.82rem;color:${color};margin-bottom:.25rem">${title}</div>
+      <div style="font-size:.72rem;color:var(--muted);line-height:1.7">${body}</div>
+    </div>
+  </div>`;
+}
+
+function runAnalysis(mode) {
+  const titles = { portfolio:'整體組合健康度', buy:'存股加碼時機判斷', risk:'風險警示' };
+  document.getElementById('aiPanelTitle').textContent = titles[mode];
+  const output = document.getElementById('aiOutput');
+  output.innerHTML = '<div style="color:var(--muted);font-size:.75rem;padding:.5rem">分析中...</div>';
+
+  setTimeout(() => {
+    const prices = getCurrentPrices();
+    let html = '';
+
+    if (mode === 'portfolio') {
+      const twVal=586388, usVal=278825, fundVal=92872, smartVal=9239;
+      const total = twVal+usVal+fundVal+smartVal;
+      const twPct = (twVal/total*100).toFixed(0);
+
+      html += fmtSignal('✅','組合整體報酬良好',
+        '總報酬率 +34.05%，台股(+54.54%)、美股(+13.41%)雙線齊漲。持倉結構健康，無過度槓桿。',
+        'var(--green)');
+
+      if (twPct > 50) html += fmtSignal('⚠️',`台股集中度偏高（${twPct}%）`,
+        `台股佔總資產 ${twPct}%。加上 0050 內含台積電約 35%、直接持有 2330 現股、TSM ADR，台積電單一曝險超過 20%。建議逐步將台股比重降至 50% 以下。`,
+        'var(--yellow)');
+
+      const tslaP = prices['TSLA']||417.85;
+      const tslaRet = ((tslaP-303.57)/303.57*100);
+      if (tslaRet > 30) html += fmtSignal('💡',`TSLA +${tslaRet.toFixed(1)}% — 獲利可部分鎖定`,
+        `建議在 $450 附近掛停利單減半出場，保留一半享受後續漲幅。`,
+        'var(--blue)');
+
+      html += fmtSignal('📊','資產配置建議',
+        '目前配置：台股 54% / 美股 26% / 基金 9%。建議方向：美股可提升至 30-35%（加碼 QQQ），台積電三重曝險可在高點出清 TSM ADR。',
+        'var(--accent)');
+
+    } else if (mode === 'buy') {
+      const holdTargets = [
+        { name:'0050 元大台灣50',  price:prices['0050']||97.3,  strongBuy:88,  buy:92,  note:'現價超過成本近 2 倍，維持定期定額即可，等回測 $92 再單筆加碼。' },
+        { name:'台積電 2330',      price:prices['2330']||2255,   strongBuy:1900,buy:2050,note:'在合理偏高區。等回測 $2,050 以下再加碼，不宜追高。' },
+        { name:'BRK/B',            price:prices['BRK/B']||479.98,strongBuy:440, buy:460, note:'接近均價，合理偏高。跌至 $460 以下為理想加碼點。' },
+        { name:'QQQ',              price:prices['QQQ']||714.51,  strongBuy:620, buy:660, note:'現價超過均價 25%，處於偏貴區。等回調至 $660 再加碼，切勿追高。' },
+      ];
+      holdTargets.forEach(s => {
+        let icon, color, verdict;
+        if (s.price <= s.strongBuy)    { icon='💚'; color='var(--green)';  verdict='💚 強力加碼時機！'; }
+        else if (s.price <= s.buy)     { icon='✦';  color='var(--blue)';   verdict='✦ 可以加碼'; }
+        else if (s.price <= s.buy*1.08){ icon='⏳'; color='var(--muted)';  verdict='合理，定期定額即可'; }
+        else                           { icon='🚫'; color='var(--yellow)'; verdict='偏貴，等待回調'; }
+        const d = ((s.price-s.buy)/s.buy*100);
+        const dStr = d>=0 ? `高於買進價 +${d.toFixed(1)}%` : `低於買進價 ${Math.abs(d).toFixed(1)}%`;
+        html += fmtSignal(icon, `${s.name} — ${verdict}`,
+          `現價 $${s.price.toLocaleString()}，${dStr}。${s.note}`, color);
+      });
+
+    } else if (mode === 'risk') {
+      const hwP = prices['5292']||219.5;
+      const hwRet = ((hwP-239.84)/239.84*100);
+      html += fmtSignal('🔴',`華懋 5292 — 虧損 ${hwRet.toFixed(1)}%，需立即行動`,
+        `成本 $239.84，現價 $${hwP}，持股 44 張（市值約 $${(hwP*44).toLocaleString()}）。建議在 $210 設停損單，跌破務必出場。`,
+        'var(--red)');
+
+      html += fmtSignal('⚠️','台積電三重曝險',
+        '同時持有：2330現股 + TSM ADR + 0050(含台積電35%)，單一個股曝險超過 20%。建議在台積電高點考慮出清 TSM ADR，降低集中風險。',
+        'var(--yellow)');
+
+      const tslaP = prices['TSLA']||417.85;
+      const tslaRet = ((tslaP-303.57)/303.57*100);
+      if (tslaRet > 25) html += fmtSignal('💡',`TSLA +${tslaRet.toFixed(1)}% — 獲利未鎖定`,
+        `持股 0.89 股，建議在 $450 掛停利單，漲破自動出場一半，剩餘部位移動停利至 $390。`,
+        'var(--blue)');
+
+      const nvdaP = prices['NVDA']||219.51;
+      const nvdaRet = ((nvdaP-174.9)/174.9*100);
+      html += fmtSignal('📌',`NVDA +${nvdaRet.toFixed(1)}% — 留意 AI 族群輪動`,
+        `持股 10.87 股，均價 $174.9。若 NVDA 跌破 $195 建議減倉至少一半，保留低成本部位長抱。`,
+        'var(--accent)');
+
+      html += fmtSignal('📎','智能投資 −0.73% — 觀察中',
+        '金額 $9,239，虧損金額小。持續觀察，若跌超 −5% 再考慮停損。',
+        'var(--muted)');
+    }
+
+    output.innerHTML = html;
+  }, 200);
+}
+
+function runAIFromBtn() {}
+
 
 
 // ─────────────────────────────────────────────
@@ -1404,7 +1453,10 @@ const yahooSymbolMap = {
 // ─────────────────────────────────────────────
 let livePrices = {};
 
+let _fetching = false;
 async function fetchLivePrices() {
+  if (_fetching) return;
+  _fetching = true;
   const statusEl = document.getElementById('priceStatus');
   if (statusEl) { statusEl.textContent = '更新中...'; statusEl.style.color = 'var(--muted)'; }
 
@@ -1440,6 +1492,7 @@ async function fetchLivePrices() {
     renderWaveTable(waveTW, 'waveTwTable', true);
     renderReturnChart();
     renderWatchlist(livePrices);
+    _fetching = false;
 
     // Update header time
     const now = new Date();
@@ -1458,6 +1511,8 @@ async function fetchLivePrices() {
     renderWaveTable(waveTW, 'waveTwTable', true);
     renderReturnChart();
     document.getElementById('updateTime').textContent = new Date().toLocaleDateString('zh-TW') + ' (靜態)';
+  } finally {
+    _fetching = false;
   }
 }
 
@@ -1466,21 +1521,7 @@ async function fetchLivePrices() {
 // ─────────────────────────────────────────────
 document.getElementById('updateTime').textContent = '載入中...';
 
-// First render with static data immediately (fast)
-renderHoldTable(holdUS, 'holdUsTable');
-renderHoldTable(holdTW, 'holdTwTable');
-renderHoldTable(holdFunds, 'holdFundTable');
-renderWaveTable(waveUS, 'waveUsTable', false);
-renderWaveTable(waveTW, 'waveTwTable', true);
-renderReturnChart();
-// Render watchlist with static prices initially
-const staticPrices = {};
-[...watchUS, ...watchTW].forEach(s => {
-  if (s.price) staticPrices[s.yahoo] = { price: s.price };
-});
-renderWatchlist(staticPrices);
-
-// Then fetch live prices and update
+// Fetch live prices — handles all rendering
 fetchLivePrices();
 
 // Auto-refresh every 5 minutes
