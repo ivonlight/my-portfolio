@@ -520,44 +520,6 @@ main { padding:2rem 2.5rem; max-width:1440px; margin:0 auto; }
   </table>
 </div>
 
-<!-- ══════════════ TAB: AI 分析 ══════════════ -->
-<div class="tab-panel" id="tab-ai">
-  <div class="sec-hd" style="margin-top:.5rem">
-    <h2>AI 智能分析</h2><div class="ln"></div><div class="bdg">Claude Powered</div>
-  </div>
-
-  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;margin-bottom:1.5rem">
-    <div class="chart-card" style="padding:1.25rem;cursor:pointer" onclick="runAI('portfolio')">
-      <div style="font-family:var(--mono);font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem">分析一</div>
-      <div style="font-size:.85rem;font-weight:600;margin-bottom:.35rem">整體組合健康度</div>
-      <div style="font-size:.68rem;color:var(--muted);line-height:1.5">評估資產配置、曝險集中度、獲利鎖定時機</div>
-    </div>
-    <div class="chart-card" style="padding:1.25rem;cursor:pointer" onclick="runAI('buy')">
-      <div style="font-family:var(--mono);font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem">分析二</div>
-      <div style="font-size:.85rem;font-weight:600;margin-bottom:.35rem">存股加碼時機判斷</div>
-      <div style="font-size:.68rem;color:var(--muted);line-height:1.5">針對 0050、台積電、BRK/B、QQQ 的加碼邏輯</div>
-    </div>
-    <div class="chart-card" style="padding:1.25rem;cursor:pointer" onclick="runAI('risk')">
-      <div style="font-family:var(--mono);font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem">分析三</div>
-      <div style="font-size:.85rem;font-weight:600;margin-bottom:.35rem">風險警示</div>
-      <div style="font-size:.68rem;color:var(--muted);line-height:1.5">哪些部位需要特別關注或立即行動</div>
-    </div>
-  </div>
-
-  <div class="ai-panel">
-    <div class="ai-panel-head">
-      <h3 id="aiPanelTitle">點擊上方卡片開始分析</h3>
-      <button class="ai-btn" id="aiBtn" onclick="runAIFromBtn()" disabled>
-        <span class="spinner" id="aiSpinner" style="display:none"></span>
-        <span id="aiBtnTxt">分析</span>
-      </button>
-    </div>
-    <div class="ai-output" id="aiOutput" style="color:var(--muted);font-size:.75rem">
-      選擇分析項目後，AI 會根據你的實際持倉數據給出具體建議。
-    </div>
-  </div>
-</div>
-
 <!-- ══════════════ TAB: 觀察清單 ══════════════ -->
 <div class="tab-panel" id="tab-watchlist">
   <div class="sec-hd" style="margin-top:.5rem">
@@ -617,6 +579,44 @@ main { padding:2rem 2.5rem; max-width:1440px; margin:0 auto; }
   </div>
 </div>
 
+
+<!-- ══════════════ TAB: AI 分析 ══════════════ -->
+<div class="tab-panel" id="tab-ai">
+  <div class="sec-hd" style="margin-top:.5rem">
+    <h2>AI 智能分析</h2><div class="ln"></div><div class="bdg">Claude Powered</div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;margin-bottom:1.5rem">
+    <div class="chart-card" style="padding:1.25rem;cursor:pointer" onclick="runAI('portfolio')">
+      <div style="font-family:var(--mono);font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem">分析一</div>
+      <div style="font-size:.85rem;font-weight:600;margin-bottom:.35rem">整體組合健康度</div>
+      <div style="font-size:.68rem;color:var(--muted);line-height:1.5">評估資產配置、曝險集中度、獲利鎖定時機</div>
+    </div>
+    <div class="chart-card" style="padding:1.25rem;cursor:pointer" onclick="runAI('buy')">
+      <div style="font-family:var(--mono);font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem">分析二</div>
+      <div style="font-size:.85rem;font-weight:600;margin-bottom:.35rem">存股加碼時機判斷</div>
+      <div style="font-size:.68rem;color:var(--muted);line-height:1.5">針對 0050、台積電、BRK/B、QQQ 的加碼邏輯</div>
+    </div>
+    <div class="chart-card" style="padding:1.25rem;cursor:pointer" onclick="runAI('risk')">
+      <div style="font-family:var(--mono);font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem">分析三</div>
+      <div style="font-size:.85rem;font-weight:600;margin-bottom:.35rem">風險警示</div>
+      <div style="font-size:.68rem;color:var(--muted);line-height:1.5">哪些部位需要特別關注或立即行動</div>
+    </div>
+  </div>
+
+  <div class="ai-panel">
+    <div class="ai-panel-head">
+      <h3 id="aiPanelTitle">點擊上方卡片開始分析</h3>
+      <button class="ai-btn" id="aiBtn" onclick="runAIFromBtn()" disabled>
+        <span class="spinner" id="aiSpinner" style="display:none"></span>
+        <span id="aiBtnTxt">分析</span>
+      </button>
+    </div>
+    <div class="ai-output" id="aiOutput" style="color:var(--muted);font-size:.75rem">
+      選擇分析項目後，AI 會根據你的實際持倉數據給出具體建議。
+    </div>
+  </div>
+</div>
 
 </main>
 
@@ -1473,6 +1473,12 @@ renderHoldTable(holdFunds, 'holdFundTable');
 renderWaveTable(waveUS, 'waveUsTable', false);
 renderWaveTable(waveTW, 'waveTwTable', true);
 renderReturnChart();
+// Render watchlist with static prices initially
+const staticPrices = {};
+[...watchUS, ...watchTW].forEach(s => {
+  if (s.price) staticPrices[s.yahoo] = { price: s.price };
+});
+renderWatchlist(staticPrices);
 
 // Then fetch live prices and update
 fetchLivePrices();
@@ -1480,8 +1486,6 @@ fetchLivePrices();
 // Auto-refresh every 5 minutes
 setInterval(fetchLivePrices, 5 * 60 * 1000);
 </script>
-</body>
-</html>
 <script>
 // ── PIN LOCK ──
 const CORRECT = '0000';
@@ -1532,3 +1536,5 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Backspace') pinDel();
 });
 </script>
+</body>
+</html>
