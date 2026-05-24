@@ -1515,12 +1515,10 @@ function izFile(e, market) {
 function izParseFile(file, market) {
   const reader = new FileReader();
   reader.onload = e => {
-    const lines = e.target.result.split(/
-?
-/).filter(l => l.trim());
+    const lines = e.target.result.split('\n').filter(l => l.trim());
     const rows = [];
     lines.slice(1).forEach(line => {
-      const c = line.split(',').map(v => v.replace(/"/g,'').trim());
+      const c = line.split(',').map(v => v.split('"').join('').trim());
       if (!c[0] || c[0].includes('總') || c[0].includes('幣別')) return;
       if (market === 'tw') {
         const name=c[0], shares=parseFloat(c[1]?.replace(/,/g,''))||0;
@@ -1696,7 +1694,7 @@ function loadRealizedCSV(e) {
   e.target.value = '';
   const reader = new FileReader();
   reader.onload = ev => {
-    const lines = ev.target.result.split(/\r?\n/).filter(l => l.trim());
+    const lines = ev.target.result.split('\n').filter(l => l.trim());
     const trades = [];
     lines.slice(1).forEach(line => {
       const cols = [];
