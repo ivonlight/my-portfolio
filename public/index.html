@@ -512,6 +512,27 @@ main { padding:2rem 2.5rem; max-width:1440px; margin:0 auto; }
   .tab-nav { display: none; }
 }
 
+/* ── REALIZED TABLE ── */
+.realized-period { margin-bottom: 2rem; }
+.realized-period-hd {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:.6rem 1rem; background:var(--surface); border:1px solid var(--border);
+  border-radius:8px 8px 0 0; margin-bottom:0;
+}
+.realized-period-hd h3 { font-family:var(--mono); font-size:.62rem; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+.realized-period-hd .period-total { font-family:var(--mono); font-size:.82rem; font-weight:600; }
+.r-tbl { width:100%; border-collapse:collapse; font-size:.76rem; }
+.r-tbl th { font-family:var(--mono); font-size:.55rem; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); padding:.48rem .85rem; text-align:left; border-bottom:1px solid var(--border); font-weight:400; background:var(--surface); }
+.r-tbl th:not(:first-child) { text-align:right; }
+.r-tbl td { padding:.72rem .85rem; border-bottom:1px solid rgba(26,27,46,.5); vertical-align:middle; }
+.r-tbl td:not(:first-child) { text-align:right; font-family:var(--mono); }
+.r-tbl tr:hover { background:rgba(108,99,255,.03); }
+.r-tbl tr:last-child td { border-bottom:none; }
+.period-wrap { background:var(--surface); border:1px solid var(--border); border-top:none; border-radius:0 0 8px 8px; overflow:hidden; }
+.ret-pill { display:inline-block; font-family:var(--mono); font-size:.62rem; padding:.18rem .55rem; border-radius:100px; font-weight:500; }
+.ret-pill.pos { background:rgba(45,212,160,.12); color:var(--green); }
+.ret-pill.neg { background:rgba(240,96,96,.12); color:var(--red); }
+
 /* ── Mobile touch improvements ── */
 @media(max-width:900px){
   button, .tab-btn, .pin-key, .bubble-btn, .bb, .bitem, .import-btn {
@@ -575,6 +596,7 @@ main { padding:2rem 2.5rem; max-width:1440px; margin:0 auto; }
   <button class="tab-btn active" data-tab="overview">總覽</button>
   <button class="tab-btn" data-tab="hold">存股判斷</button>
   <button class="tab-btn" data-tab="wave">波段操作</button>
+  <button class="tab-btn" data-tab="realized">獲利了結</button>
   <button class="tab-btn" data-tab="ai">AI 分析</button>
 </nav>
 
@@ -728,6 +750,45 @@ main { padding:2rem 2.5rem; max-width:1440px; margin:0 auto; }
     </tr></thead>
     <tbody id="waveTwTable"></tbody>
   </table>
+</div>
+
+<!-- ══════════════ TAB: 獲利了結 ══════════════ -->
+<div class="tab-panel" id="tab-realized">
+
+  <!-- Upload bar -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:.75rem">
+    <div>
+      <div class="sec-hd" style="margin:0 0 .25rem"><h2>已實現損益</h2><div class="ln"></div></div>
+      <p style="font-family:var(--mono);font-size:.65rem;color:var(--muted)">上傳「證券已實現損益.csv」自動統計</p>
+    </div>
+    <div style="display:flex;gap:.6rem;align-items:center">
+      <button class="import-btn" onclick="document.getElementById('realizedFile').click()" style="gap:.4rem">
+        📂 上傳已實現 CSV
+      </button>
+      <input type="file" id="realizedFile" accept=".csv" style="display:none" onchange="loadRealizedCSV(event)">
+      <button class="edit-btn" onclick="clearRealized()" id="clearRealizedBtn" style="display:none">清除</button>
+    </div>
+  </div>
+
+  <!-- Summary cards -->
+  <div id="realizedSummary" style="display:none">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;margin-bottom:2rem" id="realizedCards"></div>
+
+    <!-- Period sections -->
+    <div id="realizedWeek"></div>
+    <div id="realizedMonth"></div>
+    <div id="realizedYear"></div>
+  </div>
+
+  <!-- Empty state -->
+  <div id="realizedEmpty" style="text-align:center;padding:3rem 1rem">
+    <div style="font-size:3rem;margin-bottom:1rem">📋</div>
+    <div style="font-size:.85rem;font-weight:600;margin-bottom:.4rem">尚未上傳已實現損益</div>
+    <p style="font-size:.72rem;color:var(--muted);line-height:1.7;max-width:320px;margin:0 auto">
+      從券商後台匯出「證券已實現損益.csv」<br>點上方按鈕上傳，自動統計本週/本月/今年損益
+    </p>
+  </div>
+
 </div>
 
 <!-- ══════════════ TAB: AI 分析 ══════════════ -->
@@ -1614,6 +1675,10 @@ document.addEventListener('click', e => {
   <button class="mbn-btn" onclick="switchMobileTab('wave',this)">
     <span class="mbn-icon">⚡</span>
     <span class="mbn-label">波段</span>
+  </button>
+  <button class="mbn-btn" onclick="switchMobileTab('realized',this)">
+    <span class="mbn-icon">💰</span>
+    <span class="mbn-label">了結</span>
   </button>
   <button class="mbn-btn" onclick="switchMobileTab('ai',this)">
     <span class="mbn-icon">🤖</span>
