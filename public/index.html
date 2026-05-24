@@ -443,6 +443,7 @@ main { padding:2rem 2.5rem; max-width:1440px; margin:0 auto; }
     <h1>投資組合監控儀表板</h1>
   </div>
   <div class="header-right">
+    <button class="import-btn" onclick="openImport()">📂 匯入 CSV</button>
     <div class="update-time">
       資料更新
       <b id="updateTime">—</b>
@@ -1325,6 +1326,161 @@ setInterval(fetchLivePrices, 5 * 60 * 1000);
     </svg>
   </button>
 </div>
+
+<!-- Import Modal -->
+<div id="importModal">
+  <div class="modal-box">
+    <h3>📂 重新匯入持倉</h3>
+    <p>從券商App匯出最新 CSV，拖入下方區域即可更新所有分頁的持倉數據。台股和美股可以只上傳其中一個。</p>
+    <div class="modal-row">
+      <div class="import-zone" id="iz-tw"
+        onclick="document.getElementById('iz-tw-file').click()"
+        ondragover="izDragOver(event,'iz-tw')"
+        ondragleave="izDragLeave('iz-tw')"
+        ondrop="izDrop(event,'tw')">
+        <div class="iz-icon">🇹🇼</div>
+        <div class="iz-title">台股 CSV</div>
+        <div class="iz-sub">證券未實現彙總<br>從券商後台匯出</div>
+        <div class="iz-ok" id="iz-tw-ok" style="display:none">✓ 已讀取</div>
+      </div>
+      <div class="import-zone" id="iz-us"
+        onclick="document.getElementById('iz-us-file').click()"
+        ondragover="izDragOver(event,'iz-us')"
+        ondragleave="izDragLeave('iz-us')"
+        ondrop="izDrop(event,'us')">
+        <div class="iz-icon">🇺🇸</div>
+        <div class="iz-title">美股 CSV</div>
+        <div class="iz-sub">複委託庫存<br>從券商後台匯出</div>
+        <div class="iz-ok" id="iz-us-ok" style="display:none">✓ 已讀取</div>
+      </div>
+    </div>
+    <input type="file" id="iz-tw-file" accept=".csv" style="display:none" onchange="izFile(event,'tw')">
+    <input type="file" id="iz-us-file" accept=".csv" style="display:none" onchange="izFile(event,'us')">
+    <div id="iz-preview" style="font-family:var(--mono);font-size:.68rem;color:var(--muted);min-height:1.5rem;margin-top:.25rem"></div>
+    <div class="modal-footer">
+      <button class="modal-cancel" onclick="closeImport()">取消</button>
+      <button class="modal-import" id="iz-confirm-btn" onclick="confirmImport()" disabled>匯入並更新</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CSV IMPORT ──
+let izParsed = { tw: null, us: null };
+
+function openImport() {
+  izParsed = { tw: null, us: null };
+  ['tw','us'].forEach(m => {
+    document.getElementById('iz-'+m+'-ok').style.display = 'none';
+    document.getElementById('iz-'+m).classList.remove('has-file');
+  });
+  document.getElementById('iz-preview').textContent = '';
+  document.getElementById('iz-confirm-btn').disabled = true;
+  document.getElementById('importModal').classList.add('open');
+}
+function closeImport() {
+  document.getElementById('importModal').classList.remove('open');
+}
+function izDragOver(e, id) { e.preventDefault(); document.getElementById(id).classList.add('dragover'); }
+function izDragLeave(id) { document.getElementById(id).classList.remove('dragover'); }
+function izDrop(e, market) {
+  e.preventDefault();
+  izDragLeave('iz-'+market);
+  const f = e.dataTransfer.files[0];
+  if (f) izParseFile(f, market);
+}
+function izFile(e, market) {
+  const f = e.target.files[0];
+  if (f) izParseFile(f, market);
+  e.target.value = '';
+}
+function izParseFile(file, market) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    const lines = e.target.result.split(/
+?
+/).filter(l => l.trim());
+    const rows = [];
+    lines.slice(1).forEach(line => {
+      const c = line.split(',').map(v => v.replace(/"/g,'').trim());
+      if (!c[0] || c[0].includes('總') || c[0].includes('幣別')) return;
+      if (market === 'tw') {
+        const name=c[0], shares=parseFloat(c[1]?.replace(/,/g,''))||0;
+        const cost=parseFloat(c[4])||0, price=parseFloat(c[5])||0;
+        if (name && shares>0) rows.push({code:c[0]||name,name,shares,cost,price,type:'存股',market:'tw'});
+      } else {
+        const code=c[0],name=c[1]||c[0];
+        const price=parseFloat(c[2])||0,shares=parseFloat(c[3]?.replace(/,/g,''))||0;
+        const cost=parseFloat(c[8])||0;
+        if (code && shares>0) rows.push({code,name,shares,cost,price,type:'波段',market:'us'});
+      }
+    });
+    izParsed[market] = rows;
+    const zone = document.getElementById('iz-'+market);
+    const ok   = document.getElementById('iz-'+market+'-ok');
+    zone.classList.add('has-file');
+    ok.textContent = '✓ '+rows.length+' 筆';
+    ok.style.display = 'block';
+    const prev = [];
+    if (izParsed.tw) prev.push('台股 '+izParsed.tw.length+' 筆');
+    if (izParsed.us) prev.push('美股 '+izParsed.us.length+' 筆');
+    document.getElementById('iz-preview').textContent = prev.length ? '準備匯入：'+prev.join('、') : '';
+    document.getElementById('iz-confirm-btn').disabled = !izParsed.tw && !izParsed.us;
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+function confirmImport() {
+  // Update the private dashboard arrays
+  if (izParsed.tw) {
+    // Map parsed rows to waveUS/waveTW format, preserving existing tp1/tp2/sl
+    izParsed.tw.forEach(parsed => {
+      // Try to find existing stock and update price/shares/cost
+      const existing = [...waveTW, ...holdTW].find(s => s.code === parsed.code);
+      if (existing) {
+        existing.price = parsed.price;
+        existing.shares = parsed.shares;
+        existing.cost = parsed.cost;
+        existing.ret = parsed.cost ? Math.round(((parsed.price - parsed.cost) / parsed.cost) * 10000) / 100 : existing.ret;
+      }
+    });
+  }
+  if (izParsed.us) {
+    izParsed.us.forEach(parsed => {
+      const existing = [...waveUS, ...holdUS].find(s => s.code === parsed.code || s.code === parsed.code.replace('-','/'));
+      if (existing) {
+        existing.price = parsed.price;
+        existing.shares = parsed.shares;
+        existing.cost = parsed.cost;
+        existing.ret = parsed.cost ? Math.round(((parsed.price - parsed.cost) / parsed.cost) * 10000) / 100 : existing.ret;
+      }
+    });
+  }
+  closeImport();
+  document.getElementById('updateTime').textContent = new Date().toLocaleString('zh-TW',
+    {year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+  // Re-render all tables
+  ['holdUsTable','holdTwTable','holdFundTable','waveUsTable','waveTwTable','returnChart'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = '';
+  });
+  renderHoldTable(holdUS, 'holdUsTable');
+  renderHoldTable(holdTW, 'holdTwTable');
+  renderHoldTable(holdFunds, 'holdFundTable');
+  renderWaveTable(waveUS, 'waveUsTable', false);
+  renderWaveTable(waveTW, 'waveTwTable', true);
+  renderReturnChart();
+  const t = document.createElement('div');
+  const msg = '✓ 匯入完成'+(izParsed.tw?'　台股 '+izParsed.tw.length+'筆':'')+(izParsed.us?'　美股 '+izParsed.us.length+'筆':'');
+  t.textContent = msg;
+  t.style.cssText = 'position:fixed;bottom:5rem;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--green);border-radius:8px;padding:.6rem 1.25rem;font-family:var(--mono);font-size:.7rem;color:var(--green);z-index:9999;animation:fadeUp .3s ease;box-shadow:0 4px 16px rgba(0,0,0,.3);white-space:nowrap';
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+document.addEventListener('click', e => {
+  const m = document.getElementById('importModal');
+  if (e.target === m) closeImport();
+});
+</script>
 
 <script>
 // ── PIN LOCK ──
