@@ -761,11 +761,15 @@ main { padding:2rem 2.5rem; max-width:1440px; margin:0 auto; }
       <div class="sec-hd" style="margin:0 0 .25rem"><h2>已實現損益</h2><div class="ln"></div></div>
       <p style="font-family:var(--mono);font-size:.65rem;color:var(--muted)">上傳「證券已實現損益.csv」自動統計</p>
     </div>
-    <div style="display:flex;gap:.6rem;align-items:center">
+    <div style="display:flex;gap:.6rem;align-items:center;flex-wrap:wrap">
       <button class="import-btn" onclick="document.getElementById('realizedFile').click()" style="gap:.4rem">
-        📂 上傳已實現 CSV
+        🇹🇼 台股已實現
       </button>
-      <input type="file" id="realizedFile" accept=".csv" style="display:none" onchange="loadRealizedCSV(event)">
+      <input type="file" id="realizedFile" accept=".csv" style="display:none" onchange="loadRealizedCSV(event,'tw')">
+      <button class="import-btn" onclick="document.getElementById('realizedUsFile').click()" style="gap:.4rem;border-color:rgba(92,180,240,.4);background:rgba(92,180,240,.08);color:var(--blue)">
+        🇺🇸 美股已實現
+      </button>
+      <input type="file" id="realizedUsFile" accept=".csv" style="display:none" onchange="loadRealizedCSV(event,'us')">
       <button class="edit-btn" onclick="clearRealized()" id="clearRealizedBtn" style="display:none">清除</button>
     </div>
   </div>
@@ -1688,7 +1692,7 @@ document.addEventListener('click', e => {
 // ── REALIZED P&L ──
 let realizedTrades = [];
 
-function loadRealizedCSV(e) {
+function loadRealizedCSV(e, market='tw') {
   const file = e.target.files[0];
   if (!file) return;
   e.target.value = '';
@@ -1702,7 +1706,23 @@ function loadRealizedCSV(e) {
 
     // Parse header to detect column positions
     const header = lines[0].split(',').map(h => h.split('"').join('').trim());
-    const col = {
+
+    // Detect format: US (複委託) or TW (證券)
+    const isUS = header.includes('代號') || header.includes('帳面收入');
+
+    const col = isUS ? {
+      // US format: 代號,股名,日期,買賣別,價格,股數,損益,報酬率,市場,幣別,帳面收入,投資成本
+      code:      header.indexOf('代號'),
+      name:      header.indexOf('股名'),
+      date:      header.indexOf('日期'),
+      shares:    header.indexOf('股數'),
+      pnl:       header.indexOf('損益'),
+      sellPrice: header.indexOf('價格'),
+      buyPrice:  header.indexOf('投資成本'),
+      ret:       header.indexOf('報酬率'),
+      currency:  header.indexOf('幣別'),
+    } : {
+      // TW format: 股票名稱,日期,股數,損益,交易別,買進日期,賣出日期,買進單價,賣出單價,...,報酬率
       name:      header.indexOf('股票名稱'),
       date:      header.indexOf('賣出日期') !== -1 ? header.indexOf('賣出日期') : header.indexOf('日期'),
       shares:    header.indexOf('股數'),
@@ -1714,7 +1734,6 @@ function loadRealizedCSV(e) {
 
     lines.slice(1).forEach(line => {
       if (!line.trim()) return;
-      // Parse CSV respecting quoted fields
       const cols = [];
       let cur = '', inQ = false;
       for (const ch of line) {
@@ -1725,20 +1744,38 @@ function loadRealizedCSV(e) {
       cols.push(cur.trim());
 
       const clean = s => (s||'').split('"').join('').replace(/,/g,'').trim();
-      const name      = clean(cols[col.name] || cols[0]);
-      const sellDate  = clean(cols[col.date] || cols[6] || cols[1]);
-      const shares    = parseFloat(clean(cols[col.shares] || cols[2])) || 0;
-      const pnl       = parseFloat(clean(cols[col.pnl]   || cols[3])) || 0;
-      const buyPrice  = parseFloat(clean(cols[col.buyPrice]  || cols[7])) || 0;
-      const sellPrice = parseFloat(clean(cols[col.sellPrice] || cols[8])) || 0;
-      // Report rate: remove % sign and handle negative
-      const retRaw    = clean(cols[col.ret] || cols[13] || '0');
-      const ret       = parseFloat(retRaw.replace('%','')) || 0;
+
+      let name, sellDate, shares, pnl, buyPrice, sellPrice, ret, currency, code;
+
+      if (isUS) {
+        code      = clean(cols[col.code] || cols[0]);
+        name      = clean(cols[col.name] || cols[1]) || code;
+        sellDate  = clean(cols[col.date] || cols[2]);
+        const side = clean(cols[3]); // 買賣別
+        if (side !== '賣出') return; // 只記錄賣出
+        sellPrice = parseFloat(clean(cols[col.sellPrice] || cols[4])) || 0;
+        shares    = parseFloat(clean(cols[col.shares]    || cols[5])) || 0;
+        pnl       = parseFloat(clean(cols[col.pnl]       || cols[6])) || 0;
+        const retRaw = clean(cols[col.ret] || cols[7] || '0');
+        ret       = parseFloat(retRaw.replace('%','')) || 0;
+        currency  = clean(cols[col.currency] || cols[9]) || 'USD';
+        buyPrice  = shares > 0 ? parseFloat(clean(cols[col.buyPrice] || cols[11])) / shares || 0 : 0;
+      } else {
+        name      = clean(cols[col.name] || cols[0]);
+        sellDate  = clean(cols[col.date] || cols[6] || cols[1]);
+        shares    = parseFloat(clean(cols[col.shares] || cols[2])) || 0;
+        pnl       = parseFloat(clean(cols[col.pnl]   || cols[3])) || 0;
+        buyPrice  = parseFloat(clean(cols[col.buyPrice]  || cols[7])) || 0;
+        sellPrice = parseFloat(clean(cols[col.sellPrice] || cols[8])) || 0;
+        const retRaw = clean(cols[col.ret] || cols[13] || '0');
+        ret       = parseFloat(retRaw.replace('%','')) || 0;
+        currency  = 'TWD';
+        code      = name;
+      }
 
       if (!name || !sellDate || shares === 0) return;
-      // Skip summary rows
       if (name.includes('總') || name.includes('合計') || name.includes('幣別')) return;
-      trades.push({ name, sellDate, shares, pnl, buyPrice, sellPrice, ret });
+      trades.push({ code, name, sellDate, shares, pnl, buyPrice, sellPrice, ret, currency: currency||'TWD', market: isUS?'us':'tw' });
     });
 
     // Merge with existing if needed (append new trades)
@@ -1803,18 +1840,27 @@ function renderRealized() {
   const year  = realizedTrades.filter(t => { const d=parseRDate(t.sellDate); return d && d>=yearStart; });
   const sumPnl = arr => arr.reduce((s,t) => s+t.pnl, 0);
 
-  // Summary cards
+  // Summary cards - split TW and US
   const cards = document.getElementById('realizedCards');
-  cards.innerHTML = [
-    { label:'本週損益', pnl:sumPnl(week),  count:week.length },
-    { label:'本月損益', pnl:sumPnl(month), count:month.length },
-    { label:'今年損益', pnl:sumPnl(year),  count:year.length },
-  ].map((c,i) => `
-    <div class="s-card ${c.pnl>=0?'g':'r'}" style="animation-delay:${i*.07}s">
-      <div class="s-label">${c.label}</div>
-      <div class="s-val ${c.pnl>=0?'pos':'neg'}">${c.pnl>=0?'+':''}NT$${Math.round(c.pnl).toLocaleString('zh-TW')}</div>
-      <div class="s-sub" style="color:var(--muted)">${c.count} 筆交易</div>
-    </div>`).join('');
+  const twTrades = t => t.currency !== 'USD' && t.market !== 'us';
+  const usTrades = t => t.currency === 'USD' || t.market === 'us';
+  const periods = [
+    { label:'本週', tw:week.filter(twTrades),  us:week.filter(usTrades)  },
+    { label:'本月', tw:month.filter(twTrades), us:month.filter(usTrades) },
+    { label:'今年', tw:year.filter(twTrades),  us:year.filter(usTrades)  },
+  ];
+  cards.innerHTML = periods.map((p,i) => {
+    const twPnl = sumPnl(p.tw), usPnl = sumPnl(p.us);
+    const total = p.tw.length + p.us.length;
+    const totalPnlTW = twPnl + usPnl * 31.5; // rough conversion for color
+    return `<div class="s-card ${totalPnlTW>=0?'g':'r'}" style="animation-delay:${i*.07}s">
+      <div class="s-label">${p.label}損益</div>
+      ${p.tw.length ? `<div style="font-family:var(--mono);font-size:.72rem;font-weight:500" class="${twPnl>=0?'pos':'neg'}">${twPnl>=0?'+':''}NT$${Math.round(twPnl).toLocaleString('zh-TW')}</div>` : ''}
+      ${p.us.length ? `<div style="font-family:var(--mono);font-size:.72rem;font-weight:500" class="${usPnl>=0?'pos':'neg'}">${usPnl>=0?'+':''}$${Math.abs(usPnl).toFixed(2)} USD</div>` : ''}
+      ${!p.tw.length && !p.us.length ? `<div class="s-val" style="color:var(--muted)">NT$0</div>` : ''}
+      <div class="s-sub" style="color:var(--muted);margin-top:.3rem">${total} 筆交易</div>
+    </div>`;
+  }).join('');
 
   renderPeriodTable('realizedWeek',  '本週', week,  sumPnl(week));
   renderPeriodTable('realizedMonth', '本月', month, sumPnl(month));
@@ -1830,15 +1876,25 @@ function renderPeriodTable(id, label, trades, totalPnl) {
   });
   const pnlColor = totalPnl>=0 ? 'var(--green)' : 'var(--red)';
   const pnlStr = (totalPnl>=0?'+':'')+'NT$'+Math.round(totalPnl).toLocaleString('zh-TW');
-  const rows = sorted.map((t,i) => `
-    <tr style="animation-delay:${i*.03}s">
-      <td><span class="sname">${t.name}</span><span class="scode">${t.sellDate}</span></td>
-      <td>${t.shares.toLocaleString('zh-TW')}</td>
-      <td>NT$${t.buyPrice.toLocaleString('zh-TW')}</td>
-      <td>NT$${t.sellPrice.toLocaleString('zh-TW')}</td>
+  const rows = sorted.map((t,i) => {
+    const isUS = t.currency === 'USD' || t.market === 'us';
+    const fmtAmt = (v) => isUS
+      ? '$' + Math.abs(v).toFixed(2)
+      : 'NT$' + Math.abs(Math.round(v)).toLocaleString('zh-TW');
+    const pnlStr = (t.pnl>=0?'+':'−') + fmtAmt(t.pnl);
+    const buyStr = isUS ? '$'+t.buyPrice.toFixed(2) : 'NT$'+Math.round(t.buyPrice).toLocaleString('zh-TW');
+    const sellStr= isUS ? '$'+t.sellPrice.toFixed(2) : 'NT$'+Math.round(t.sellPrice).toLocaleString('zh-TW');
+    const sharesStr = isUS ? t.shares.toFixed(5).replace(/0+$/, '').replace(/\.$/, '') : t.shares.toLocaleString('zh-TW');
+    const badge = isUS ? '<span style="font-family:var(--mono);font-size:.5rem;padding:.1rem .3rem;border-radius:3px;background:rgba(92,180,240,.15);color:var(--blue);margin-left:.3rem">USD</span>' : '';
+    return `<tr style="animation-delay:${i*.03}s">
+      <td><span class="sname">${t.name}${badge}</span><span class="scode">${t.sellDate}</span></td>
+      <td style="font-family:var(--mono)">${sharesStr}</td>
+      <td style="font-family:var(--mono)">${buyStr}</td>
+      <td style="font-family:var(--mono)">${sellStr}</td>
       <td><span class="ret-pill ${t.ret>=0?'pos':'neg'}">${t.ret>=0?'+':''}${t.ret.toFixed(2)}%</span></td>
-      <td class="${t.pnl>=0?'pos':'neg'}" style="font-weight:600">${t.pnl>=0?'+':''}NT$${Math.round(t.pnl).toLocaleString('zh-TW')}</td>
-    </tr>`).join('');
+      <td class="${t.pnl>=0?'pos':'neg'}" style="font-family:var(--mono);font-weight:600">${pnlStr}</td>
+    </tr>`;
+  }).join('');
 
   el.innerHTML = `
     <div class="realized-period">
