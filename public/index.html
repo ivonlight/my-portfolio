@@ -1687,6 +1687,151 @@ document.addEventListener('click', e => {
 </div>
 
 <script>
+// ── REALIZED P&L ──
+let realizedTrades = [];
+
+function loadRealizedCSV(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  e.target.value = '';
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const lines = ev.target.result.split(/\r?\n/).filter(l => l.trim());
+    const trades = [];
+    lines.slice(1).forEach(line => {
+      const cols = [];
+      let cur = '', inQ = false;
+      for (const ch of line) {
+        if (ch === '"') { inQ = !inQ; }
+        else if (ch === ',' && !inQ) { cols.push(cur.trim()); cur = ''; }
+        else { cur += ch; }
+      }
+      cols.push(cur.trim());
+      if (cols.length < 13) return;
+      const name = cols[0];
+      const sellDate = cols[6] || cols[1];
+      const shares = parseFloat(cols[2].replace(/,/g,'')) || 0;
+      const pnl = parseFloat(cols[3].replace(/,/g,'')) || 0;
+      const buyPrice = parseFloat(cols[7]) || 0;
+      const sellPrice = parseFloat(cols[8]) || 0;
+      const ret = parseFloat(cols[13]) || 0;
+      if (!name || !sellDate || shares === 0) return;
+      trades.push({ name, sellDate, shares, pnl, buyPrice, sellPrice, ret });
+    });
+    realizedTrades = trades;
+    renderRealized();
+    try { localStorage.setItem('realized_trades', JSON.stringify(trades)); } catch(e) {}
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function clearRealized() {
+  if (!confirm('確定要清除已實現損益資料嗎？')) return;
+  realizedTrades = [];
+  try { localStorage.removeItem('realized_trades'); } catch(e) {}
+  document.getElementById('realizedSummary').style.display = 'none';
+  document.getElementById('realizedEmpty').style.display = 'block';
+  document.getElementById('clearRealizedBtn').style.display = 'none';
+}
+
+function parseRDate(str) {
+  if (!str) return null;
+  const p = str.split('/');
+  if (p.length !== 3) return null;
+  return new Date(parseInt(p[0]), parseInt(p[1])-1, parseInt(p[2]));
+}
+
+function renderRealized() {
+  if (!realizedTrades.length) {
+    document.getElementById('realizedSummary').style.display = 'none';
+    document.getElementById('realizedEmpty').style.display = 'block';
+    return;
+  }
+  document.getElementById('realizedSummary').style.display = 'block';
+  document.getElementById('realizedEmpty').style.display = 'none';
+  document.getElementById('clearRealizedBtn').style.display = 'inline-flex';
+
+  const now = new Date();
+  const day = now.getDay();
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
+  monday.setHours(0,0,0,0);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  sunday.setHours(23,59,59,999);
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const yearStart = new Date(now.getFullYear(), 0, 1);
+
+  const week  = realizedTrades.filter(t => { const d=parseRDate(t.sellDate); return d && d>=monday && d<=sunday; });
+  const month = realizedTrades.filter(t => { const d=parseRDate(t.sellDate); return d && d>=monthStart; });
+  const year  = realizedTrades.filter(t => { const d=parseRDate(t.sellDate); return d && d>=yearStart; });
+  const sumPnl = arr => arr.reduce((s,t) => s+t.pnl, 0);
+
+  // Summary cards
+  const cards = document.getElementById('realizedCards');
+  cards.innerHTML = [
+    { label:'本週損益', pnl:sumPnl(week),  count:week.length },
+    { label:'本月損益', pnl:sumPnl(month), count:month.length },
+    { label:'今年損益', pnl:sumPnl(year),  count:year.length },
+  ].map((c,i) => `
+    <div class="s-card ${c.pnl>=0?'g':'r'}" style="animation-delay:${i*.07}s">
+      <div class="s-label">${c.label}</div>
+      <div class="s-val ${c.pnl>=0?'pos':'neg'}">${c.pnl>=0?'+':''}NT$${Math.round(c.pnl).toLocaleString('zh-TW')}</div>
+      <div class="s-sub" style="color:var(--muted)">${c.count} 筆交易</div>
+    </div>`).join('');
+
+  renderPeriodTable('realizedWeek',  '本週', week,  sumPnl(week));
+  renderPeriodTable('realizedMonth', '本月', month, sumPnl(month));
+  renderPeriodTable('realizedYear',  '今年', year,  sumPnl(year));
+}
+
+function renderPeriodTable(id, label, trades, totalPnl) {
+  const el = document.getElementById(id);
+  if (!trades.length) { el.innerHTML = ''; return; }
+  const sorted = [...trades].sort((a,b) => {
+    const da=parseRDate(a.sellDate), db=parseRDate(b.sellDate);
+    return db-da;
+  });
+  const pnlColor = totalPnl>=0 ? 'var(--green)' : 'var(--red)';
+  const pnlStr = (totalPnl>=0?'+':'')+'NT$'+Math.round(totalPnl).toLocaleString('zh-TW');
+  const rows = sorted.map((t,i) => `
+    <tr style="animation-delay:${i*.03}s">
+      <td><span class="sname">${t.name}</span><span class="scode">${t.sellDate}</span></td>
+      <td>${t.shares.toLocaleString('zh-TW')}</td>
+      <td>NT$${t.buyPrice.toLocaleString('zh-TW')}</td>
+      <td>NT$${t.sellPrice.toLocaleString('zh-TW')}</td>
+      <td><span class="ret-pill ${t.ret>=0?'pos':'neg'}">${t.ret>=0?'+':''}${t.ret.toFixed(2)}%</span></td>
+      <td class="${t.pnl>=0?'pos':'neg'}" style="font-weight:600">${t.pnl>=0?'+':''}NT$${Math.round(t.pnl).toLocaleString('zh-TW')}</td>
+    </tr>`).join('');
+
+  el.innerHTML = `
+    <div class="realized-period">
+      <div class="realized-period-hd">
+        <h3>${label}（${trades.length} 筆）</h3>
+        <div class="period-total" style="color:${pnlColor}">${pnlStr}</div>
+      </div>
+      <div class="period-wrap">
+        <table class="r-tbl">
+          <thead><tr><th>股票</th><th>股數</th><th>買進價</th><th>賣出價</th><th>報酬率</th><th>損益</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+// Auto-load saved realized data
+(function initRealized() {
+  try {
+    const saved = localStorage.getItem('realized_trades');
+    if (saved) {
+      realizedTrades = JSON.parse(saved);
+      if (realizedTrades.length) renderRealized();
+    }
+  } catch(e) {}
+})();
+</script>
+
+<script>
 // ── MOBILE TAB SWITCH ──
 function switchMobileTab(tab, btn) {
   // Switch tab panels
