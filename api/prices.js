@@ -31,33 +31,11 @@ module.exports = async function handler(req, res) {
 
         const price = meta.regularMarketPrice ?? meta.previousClose ?? null;
 
-        // Get additional data from quote summary
-        const url2 = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(symbol)}?modules=summaryDetail%2CdefaultKeyStatistics%2CfinancialData%2CsummaryProfile`;
-        let extra = {};
-        try {
-          const r2 = await fetch(url2, { headers });
-          if (r2.ok) {
-            const d2 = await r2.json();
-            const sd  = d2?.quoteSummary?.result?.[0]?.summaryDetail;
-            const ks  = d2?.quoteSummary?.result?.[0]?.defaultKeyStatistics;
-            const fd  = d2?.quoteSummary?.result?.[0]?.financialData;
-            extra = {
-              trailingPE: sd?.trailingPE?.raw ?? null,
-              forwardPE:  sd?.forwardPE?.raw  ?? null,
-              fiftyDayAverage:      sd?.fiftyDayAverage?.raw      ?? null,
-              twoHundredDayAverage: sd?.twoHundredDayAverage?.raw ?? null,
-              fiftyTwoWeekHigh: sd?.fiftyTwoWeekHigh?.raw ?? null,
-              fiftyTwoWeekLow:  sd?.fiftyTwoWeekLow?.raw  ?? null,
-              priceToBook:   ks?.priceToBook?.raw   ?? null,
-              returnOnEquity:fd?.returnOnEquity?.raw ?? null,
-            };
-          }
-        } catch(e2) {}
-
-        const w52High = extra.fiftyTwoWeekHigh ?? meta.fiftyTwoWeekHigh ?? null;
-        const w52Low  = extra.fiftyTwoWeekLow  ?? meta.fiftyTwoWeekLow  ?? null;
-        const ma50    = extra.fiftyDayAverage   ?? null;
-        const ma200   = extra.twoHundredDayAverage ?? null;
+        // 52週高低點從 v8 chart meta 取得（唯一可靠來源）
+        const w52High = meta.fiftyTwoWeekHigh ?? null;
+        const w52Low  = meta.fiftyTwoWeekLow  ?? null;
+        const ma50    = null; // Yahoo Finance 已鎖定此欄位
+        const ma200   = null;
 
         let w52Position = null;
         if (w52High && w52Low && w52High !== w52Low && price) {
@@ -80,10 +58,7 @@ module.exports = async function handler(req, res) {
           else if (ma50 && ma200 && price < ma50 && price < ma200) techSignal = 'weak';
         }
 
-        const pe   = extra.trailingPE;
-        const fwPe = extra.forwardPE;
-        const pb   = extra.priceToBook;
-        const roe  = extra.returnOnEquity;
+        const pe = null, fwPe = null, pb = null, roe = null;
 
         results[symbol] = {
           price,

@@ -547,7 +547,7 @@ main { padding:2rem 2.5rem; max-width:1440px; margin:0 auto; }
   <table class="stk-table">
     <thead><tr>
       <th>標的</th><th>均價</th><th>持股數</th><th style="text-align:right">輸入現價</th>
-      <th>報酬率</th><th>停利目標</th><th>停損線</th><th>技術面</th><th>估值</th><th>警示</th><th>訊號</th>
+      <th>報酬率</th><th>停利目標</th><th>停損線</th><th>52週位置</th><th>警示</th><th>訊號</th>
     </tr></thead>
     <tbody id="waveUsTable"></tbody>
   </table>
@@ -558,7 +558,7 @@ main { padding:2rem 2.5rem; max-width:1440px; margin:0 auto; }
   <table class="stk-table">
     <thead><tr>
       <th>標的</th><th>均價</th><th>持股數</th><th style="text-align:right">輸入現價</th>
-      <th>報酬率</th><th>停利目標</th><th>停損線</th><th>技術面</th><th>估值</th><th>警示</th><th>訊號</th>
+      <th>報酬率</th><th>停利目標</th><th>停損線</th><th>52週位置</th><th>警示</th><th>訊號</th>
     </tr></thead>
     <tbody id="waveTwTable"></tbody>
   </table>
@@ -824,69 +824,29 @@ function renderWaveTable(stocks, tbodyId, isTW) {
       ? (isTW ? s.shares.toLocaleString('zh-TW') : s.shares % 1 === 0 ? s.shares : s.shares.toFixed(2)) + ' 股'
       : '—';
 
-    // Technical cell
-    const techMap = {
-      strong_up:  { icon:'↑↑', color:'var(--green)',  tip:'多頭排列' },
-      up:         { icon:'↑',  color:'var(--green)',  tip:'站上均線' },
-      mixed:      { icon:'—',  color:'var(--muted)',  tip:'混合訊號' },
-      down:       { icon:'↓',  color:'var(--red)',    tip:'跌破均線' },
-    };
-    const techStyle = techMap[s.maSignal] || { icon:'—', color:'var(--muted)', tip:'無資料' };
-
-    const techSigMap = {
-      buy:        { lbl:'低位買進', color:'var(--green)' },
-      watch:      { lbl:'相對低位', color:'var(--blue)' },
-      neutral:    { lbl:'中性',     color:'var(--muted)' },
-      overbought: { lbl:'接近高點', color:'var(--yellow)' },
-      weak:       { lbl:'趨勢偏弱', color:'var(--red)' },
-    };
-    const techSig = techSigMap[s.techSignal] || techSigMap.neutral;
-
+    // 52週位置 cell
     const w52Pct = s.w52Position != null ? s.w52Position : null;
-    const w52Bar = w52Pct != null ? `
-      <div style="font-family:var(--mono);font-size:.58rem;color:var(--muted);margin-top:.25rem">
-        52週 ${w52Pct}%
-        <div style="width:60px;height:3px;background:var(--border);border-radius:2px;margin-top:.2rem;overflow:hidden;display:inline-block;vertical-align:middle">
-          <div style="width:${w52Pct}%;height:100%;background:${w52Pct<=30?'var(--green)':w52Pct>=80?'var(--red)':'var(--yellow)'};border-radius:2px"></div>
-        </div>
-      </div>` : '';
+    const w52Color = w52Pct != null
+      ? (w52Pct <= 30 ? 'var(--green)' : w52Pct >= 80 ? 'var(--red)' : 'var(--yellow)')
+      : 'var(--muted)';
+    const w52Label = w52Pct != null
+      ? (w52Pct <= 30 ? '🟢 相對低位' : w52Pct >= 80 ? '🔴 接近高點' : '🟡 中性區間')
+      : '—';
+    const w52High = s.w52High ? (isTW ? 'NT$'+Math.round(s.w52High).toLocaleString('zh-TW') : '$'+s.w52High.toFixed(2)) : '—';
+    const w52Low  = s.w52Low  ? (isTW ? 'NT$'+Math.round(s.w52Low).toLocaleString('zh-TW')  : '$'+s.w52Low.toFixed(2))  : '—';
 
-    const ma50Str  = s.ma50  ? (isTW ? 'NT$'+Math.round(s.ma50).toLocaleString('zh-TW')  : '$'+s.ma50.toFixed(2))  : null;
-    const ma200Str = s.ma200 ? (isTW ? 'NT$'+Math.round(s.ma200).toLocaleString('zh-TW') : '$'+s.ma200.toFixed(2)) : null;
-    const priceVsMa50  = s.ma50  && s.price ? ((s.price - s.ma50)  / s.ma50  * 100) : null;
-    const priceVsMa200 = s.ma200 && s.price ? ((s.price - s.ma200) / s.ma200 * 100) : null;
-    const ma50Color  = priceVsMa50  != null ? (priceVsMa50  >= 0 ? 'var(--green)' : 'var(--red)') : 'var(--muted)';
-    const ma200Color = priceVsMa200 != null ? (priceVsMa200 >= 0 ? 'var(--green)' : 'var(--red)') : 'var(--muted)';
+    const techCell = w52Pct != null ? `
+      <div style="font-family:var(--mono);font-size:.72rem;font-weight:600;color:${w52Color};margin-bottom:.35rem">
+        ${w52Pct}% ${w52Label}
+      </div>
+      <div style="width:80px;height:5px;background:var(--border);border-radius:3px;margin-bottom:.35rem;overflow:hidden">
+        <div style="width:${w52Pct}%;height:100%;background:${w52Color};border-radius:3px;transition:width .8s ease"></div>
+      </div>
+      <div style="font-family:var(--mono);font-size:.58rem;color:var(--muted)">
+        高 ${w52High}<br>低 ${w52Low}
+      </div>` : '<span style="font-family:var(--mono);font-size:.62rem;color:var(--muted)">—</span>';
 
-    const techCell = `
-      <div style="font-size:.68rem;font-weight:600;color:${techStyle.color};margin-bottom:.3rem">${techStyle.icon} ${techStyle.tip}</div>
-      ${ma50Str ? `
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.2rem">
-          <span style="font-family:var(--mono);font-size:.58rem;color:var(--muted)">月線 MA50</span>
-          <span style="font-family:var(--mono);font-size:.68rem;font-weight:500">${ma50Str}</span>
-        </div>
-        <div style="font-family:var(--mono);font-size:.6rem;color:${ma50Color};margin-bottom:.3rem">
-          現價 ${priceVsMa50>=0?'+':''}${priceVsMa50?.toFixed(1)}% vs MA50
-        </div>` : ''}
-      ${ma200Str ? `
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.2rem">
-          <span style="font-family:var(--mono);font-size:.58rem;color:var(--muted)">年線 MA200</span>
-          <span style="font-family:var(--mono);font-size:.68rem;font-weight:500">${ma200Str}</span>
-        </div>
-        <div style="font-family:var(--mono);font-size:.6rem;color:${ma200Color};margin-bottom:.3rem">
-          現價 ${priceVsMa200>=0?'+':''}${priceVsMa200?.toFixed(1)}% vs MA200
-        </div>` : ''}
-      ${w52Bar}
-      <div style="font-family:var(--mono);font-size:.58rem;color:${techSig.color};margin-top:.25rem;font-weight:500">${techSig.lbl}</div>
-    `;
-
-    // Valuation cell
-    const valCell = s.pe || s.fwPe || s.pb ? `
-      ${s.pe   ? `<div style="font-family:var(--mono);font-size:.62rem"><span style="color:var(--muted)">PE </span>${s.pe}</div>` : ''}
-      ${s.fwPe ? `<div style="font-family:var(--mono);font-size:.62rem"><span style="color:var(--muted)">FwPE </span>${s.fwPe}</div>` : ''}
-      ${s.pb   ? `<div style="font-family:var(--mono);font-size:.62rem"><span style="color:var(--muted)">PB </span>${s.pb}</div>` : ''}
-      ${s.roe  ? `<div style="font-family:var(--mono);font-size:.62rem"><span style="color:var(--muted)">ROE </span>${s.roe}%</div>` : ''}
-    ` : '<span style="font-family:var(--mono);font-size:.62rem;color:var(--muted)">—</span>';
+    const valCell = '';
 
     tr.innerHTML = `
       <td><span class="sname">${s.name}</span><span class="scode">${s.code}</span></td>
@@ -908,8 +868,7 @@ function renderWaveTable(stocks, tbodyId, isTW) {
         </div>
       </td>
       <td><span class="sig ${sig.cls}" id="wsig-${s.code}">${sig.lbl}</span></td>
-        <td style="vertical-align:top">${techCell}</td>
-        <td style="vertical-align:top">${valCell}</td>`;
+        <td style="vertical-align:middle">${techCell}</td>`;
     tbody.appendChild(tr);
   });
 }
