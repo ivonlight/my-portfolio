@@ -1,6 +1,4 @@
-// api/prices.js — CommonJS 版本，解決 ERR_PACKAGE_PATH_NOT_EXPORTED 問題
-const yahooFinance = require('yahoo-finance2').default;
-
+// api/prices.js — 不依賴任何套件，直接用 fetch 打 Yahoo Finance
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Cache-Control', 's-maxage=120, stale-while-revalidate=600');
@@ -14,23 +12,52 @@ module.exports = async function handler(req, res) {
   const results = {};
   const errors = [];
 
+  const headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+    'Accept': 'application/json',
+    'Accept-Language': 'en-US,en;q=0.9',
+  };
+
   await Promise.all(
     symbols.map(async (symbol) => {
       try {
-        const q = await yahooFinance.quote(symbol, {}, { validateResult: false });
+        // Yahoo Finance v8 chart API - most reliable
+        const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1d&includePrePost=false`;
+        const r = await fetch(url, { headers });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const data = await r.json();
+        const meta = data?.chart?.result?.[0]?.meta;
+        if (!meta) throw new Error('No meta');
 
-        let summary = null;
+        const price = meta.regularMarketPrice ?? meta.previousClose ?? null;
+
+        // Get additional data from quote summary
+        const url2 = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(symbol)}?modules=summaryDetail%2CdefaultKeyStatistics%2CfinancialData%2CsummaryProfile`;
+        let extra = {};
         try {
-          summary = await yahooFinance.quoteSummary(symbol, {
-            modules: ['defaultKeyStatistics', 'summaryDetail', 'financialData'],
-          }, { validateResult: false });
-        } catch(e) {}
+          const r2 = await fetch(url2, { headers });
+          if (r2.ok) {
+            const d2 = await r2.json();
+            const sd  = d2?.quoteSummary?.result?.[0]?.summaryDetail;
+            const ks  = d2?.quoteSummary?.result?.[0]?.defaultKeyStatistics;
+            const fd  = d2?.quoteSummary?.result?.[0]?.financialData;
+            extra = {
+              trailingPE: sd?.trailingPE?.raw ?? null,
+              forwardPE:  sd?.forwardPE?.raw  ?? null,
+              fiftyDayAverage:      sd?.fiftyDayAverage?.raw      ?? null,
+              twoHundredDayAverage: sd?.twoHundredDayAverage?.raw ?? null,
+              fiftyTwoWeekHigh: sd?.fiftyTwoWeekHigh?.raw ?? null,
+              fiftyTwoWeekLow:  sd?.fiftyTwoWeekLow?.raw  ?? null,
+              priceToBook:   ks?.priceToBook?.raw   ?? null,
+              returnOnEquity:fd?.returnOnEquity?.raw ?? null,
+            };
+          }
+        } catch(e2) {}
 
-        const price    = q.regularMarketPrice ?? q.previousClose ?? null;
-        const w52High  = q.fiftyTwoWeekHigh ?? null;
-        const w52Low   = q.fiftyTwoWeekLow  ?? null;
-        const ma50     = q.fiftyDayAverage  ?? null;
-        const ma200    = q.twoHundredDayAverage ?? null;
+        const w52High = extra.fiftyTwoWeekHigh ?? meta.fiftyTwoWeekHigh ?? null;
+        const w52Low  = extra.fiftyTwoWeekLow  ?? meta.fiftyTwoWeekLow  ?? null;
+        const ma50    = extra.fiftyDayAverage   ?? null;
+        const ma200   = extra.twoHundredDayAverage ?? null;
 
         let w52Position = null;
         if (w52High && w52Low && w52High !== w52Low && price) {
@@ -45,29 +72,29 @@ module.exports = async function handler(req, res) {
           else                                                    maSignal = 'mixed';
         }
 
-        const pe   = q.trailingPE ?? summary?.summaryDetail?.trailingPE ?? null;
-        const fwPe = q.forwardPE  ?? summary?.summaryDetail?.forwardPE  ?? null;
-        const pb   = summary?.defaultKeyStatistics?.priceToBook ?? null;
-        const roe  = summary?.financialData?.returnOnEquity ?? null;
-
         let techSignal = 'neutral';
-        if (w52Position !== null && ma50 && price) {
-          if      (w52Position <= 20 && price > ma50)  techSignal = 'buy';
-          else if (w52Position <= 35 && price > ma200) techSignal = 'watch';
-          else if (w52Position >= 85)                  techSignal = 'overbought';
-          else if (price < ma50 && price < ma200)      techSignal = 'weak';
+        if (w52Position !== null && price) {
+          if      (ma50 && w52Position <= 20 && price > ma50)  techSignal = 'buy';
+          else if (ma200 && w52Position <= 35 && price > ma200) techSignal = 'watch';
+          else if (w52Position >= 85)                           techSignal = 'overbought';
+          else if (ma50 && ma200 && price < ma50 && price < ma200) techSignal = 'weak';
         }
+
+        const pe   = extra.trailingPE;
+        const fwPe = extra.forwardPE;
+        const pb   = extra.priceToBook;
+        const roe  = extra.returnOnEquity;
 
         results[symbol] = {
           price,
-          change:      q.regularMarketChangePercent ?? 0,
-          currency:    q.currency,
-          marketState: q.marketState,
+          change:      meta.regularMarketChangePercent ?? 0,
+          currency:    meta.currency,
+          marketState: meta.marketState,
           w52High, w52Low, w52Position,
           ma50, ma200, maSignal, techSignal,
-          pe:   pe   ? Math.round(pe   * 10)  / 10   : null,
-          fwPe: fwPe ? Math.round(fwPe * 10)  / 10   : null,
-          pb:   pb   ? Math.round(pb   * 100) / 100   : null,
+          pe:   pe   ? Math.round(pe   * 10)   / 10  : null,
+          fwPe: fwPe ? Math.round(fwPe * 10)   / 10  : null,
+          pb:   pb   ? Math.round(pb   * 100)  / 100  : null,
           roe:  roe  ? Math.round(roe  * 1000) / 10   : null,
         };
       } catch (e) {
