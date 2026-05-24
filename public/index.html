@@ -396,12 +396,131 @@ main { padding:2rem 2.5rem; max-width:1440px; margin:0 auto; }
 
 /* ── MOBILE ── */
 @media(max-width:900px){
-  header,.tab-nav,main{ padding-left:1.25rem; padding-right:1.25rem; }
-  .tab-nav{ top:66px; overflow-x:auto; }
-  .summary-strip{ grid-template-columns:repeat(2,1fr); }
-  .charts-row{ grid-template-columns:1fr; }
-  .action-grid{ grid-template-columns:1fr; }
-  .stk-table th:nth-child(6),.stk-table td:nth-child(6){ display:none; }
+  /* ── Layout ── */
+  header,.tab-nav,main{ padding-left:1rem; padding-right:1rem; }
+  header{ padding-top:1rem; padding-bottom:1rem; }
+  .header-left h1{ font-size:1.1rem; }
+  .header-right{ gap:.5rem; }
+  .last-update,.update-time{ display:none; } /* hide timestamp on mobile */
+  .import-btn{ font-size:.55rem; padding:.32rem .6rem; }
+
+  /* ── Tab nav ── */
+  .tab-nav{ top:58px; overflow-x:auto; gap:.2rem; padding:.5rem 0;
+    -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+  .tab-nav::-webkit-scrollbar{ display:none; }
+  .tab-btn{ font-size:.58rem; padding:.35rem .7rem; white-space:nowrap; }
+
+  /* ── Summary cards ── */
+  .summary-strip{ grid-template-columns:repeat(2,1fr); gap:.5rem; margin-bottom:1.25rem; }
+  .s-card{ padding:.85rem 1rem; }
+  .s-label{ font-size:.5rem; }
+  .s-val{ font-size:1.05rem; }
+  .s-sub{ font-size:.6rem; }
+
+  /* ── Charts ── */
+  .charts-row{ grid-template-columns:1fr; gap:.75rem; }
+  .chart-card{ padding:1.1rem; }
+
+  /* ── Action panel ── */
+  .action-panel{ padding:1.1rem; }
+  .action-grid{ grid-template-columns:1fr; gap:.6rem; }
+
+  /* ── Tables: hide less important columns ── */
+  /* Wave table: hide 持股數, 警示 on mobile */
+  .stk-table th:nth-child(3),.stk-table td:nth-child(3){ display:none; } /* 持股數 */
+  .stk-table th:nth-child(8),.stk-table td:nth-child(8){ display:none; } /* 警示 */
+  .stk-table{ font-size:.72rem; }
+  .stk-table th,.stk-table td{ padding:.6rem .55rem; }
+  .sname{ font-size:.78rem; }
+  .scode{ font-size:.56rem; }
+  .price-input{ width:78px; font-size:.72rem; }
+
+  /* Hold table: hide notes column */
+  .h-tbl th:nth-child(7),.h-tbl td:nth-child(7){ display:none; }
+  .h-tbl{ font-size:.72rem; }
+  .h-tbl th,.h-tbl td{ padding:.6rem .5rem; }
+
+  /* ── Section headers ── */
+  .sec-hd{ margin:1.25rem 0 .6rem; }
+
+  /* ── Analysis panel ── */
+  .analysis-panel,.ana-panel{ padding:1.1rem; }
+  .analysis-grid,.ana-grid{ grid-template-columns:1fr; gap:.55rem; }
+
+  /* ── Save bar ── */
+  .save-bar{ flex-wrap:wrap; gap:.4rem; padding:.5rem .75rem; font-size:.6rem; }
+
+  /* ── Import modal ── */
+  .modal-box{ padding:1.4rem; width:95%; }
+  .modal-row{ grid-template-columns:1fr 1fr; gap:.5rem; }
+  .import-zone{ padding:.9rem .75rem; }
+  .import-zone .iz-title{ font-size:.68rem; }
+  .import-zone .iz-sub{ font-size:.58rem; }
+
+  /* ── Claude bubble ── */
+  #claudeBubble{ bottom:1.25rem; right:1.25rem; }
+  .bb{ width:46px; height:46px; font-size:1.1rem; }
+  .bitem{ font-size:.6rem; padding:.35rem .75rem .35rem .5rem; }
+
+  /* ── PIN lock ── */
+  .pin-pad{ width:200px; gap:.5rem; }
+  .pin-key{ padding:.75rem; font-size:1.1rem; }
+}
+
+@media(max-width:480px){
+  /* Very small screens */
+  .summary-strip{ grid-template-columns:1fr 1fr; }
+  .s-val{ font-size:.95rem; }
+
+  /* Stack wave table more aggressively */
+  .stk-table th:nth-child(6),.stk-table td:nth-child(6){ display:none; } /* 停損線 */
+  .stk-table th:nth-child(9),.stk-table td:nth-child(9){ display:none; } /* 52週 */
+
+  /* Hold table: keep only essential */
+  .h-tbl th:nth-child(4),.h-tbl td:nth-child(4){ display:none; } /* 現價 */
+  .h-tbl th:nth-child(6),.h-tbl td:nth-child(6){ display:none; } /* 市值 */
+
+  .tab-btn{ font-size:.54rem; padding:.3rem .6rem; }
+  header{ flex-direction:column; align-items:flex-start; gap:.5rem; }
+  .header-right{ width:100%; justify-content:flex-end; }
+}
+
+/* ── Mobile bottom nav ── */
+.mobile-bottom-nav {
+  display: none;
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: rgba(7,8,15,.95); backdrop-filter: blur(16px);
+  border-top: 1px solid var(--border);
+  z-index: 200; padding: .5rem 0 env(safe-area-inset-bottom, .5rem);
+  grid-template-columns: repeat(4, 1fr);
+}
+.mbn-btn {
+  display: flex; flex-direction: column; align-items: center; gap: .2rem;
+  padding: .4rem .5rem; background: none; border: none; cursor: pointer;
+  color: var(--muted); transition: color .18s;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.mbn-btn.active { color: var(--accent); }
+.mbn-btn .mbn-icon { font-size: 1.15rem; }
+.mbn-btn .mbn-label { font-family: var(--mono); font-size: .5rem; letter-spacing: .06em; text-transform: uppercase; }
+@media(max-width:900px) {
+  .mobile-bottom-nav { display: grid; }
+  #dashboard main, #dashboard > div[style] { padding-bottom: 5rem; }
+  #claudeBubble { bottom: 4.5rem; }
+  /* Hide top tab nav on mobile - use bottom nav instead */
+  .tab-nav { display: none; }
+}
+
+/* ── Mobile touch improvements ── */
+@media(max-width:900px){
+  button, .tab-btn, .pin-key, .bubble-btn, .bb, .bitem, .import-btn {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  input[type="number"] {
+    font-size: 16px; /* Prevents iOS zoom on focus */
+  }
 }
 </style>
 </head>
@@ -452,9 +571,9 @@ main { padding:2rem 2.5rem; max-width:1440px; margin:0 auto; }
   </div>
 </header>
 
-<nav class="tab-nav">
+<nav class="tab-nav" id="mainTabNav">
   <button class="tab-btn active" data-tab="overview">總覽</button>
-  <button class="tab-btn" data-tab="hold">存股 · 買進判斷</button>
+  <button class="tab-btn" data-tab="hold">存股判斷</button>
   <button class="tab-btn" data-tab="wave">波段操作</button>
   <button class="tab-btn" data-tab="ai">AI 分析</button>
 </nav>
@@ -1302,69 +1421,7 @@ fetchLivePrices();
 
 // Auto-refresh every 5 minutes
 setInterval(fetchLivePrices, 5 * 60 * 1000);
-</script>
-<!-- CLAUDE BUBBLE -->
-<div id="claudeBubble">
-  <div class="bubble-menu" id="bubbleMenu">
-    <a class="bubble-item" id="askGeneral" href="#" onclick="openClaude('general');return false;">
-      <span class="icon">💬</span> 問 Claude 任何問題
-    </a>
-    <a class="bubble-item" id="askPortfolio" href="#" onclick="openClaude('portfolio');return false;">
-      <span class="icon">📊</span> 分析我的持倉
-    </a>
-    <a class="bubble-item" id="askBuy" href="#" onclick="openClaude('buy');return false;">
-      <span class="icon">🎯</span> 現在可以買什麼
-    </a>
-    <a class="bubble-item" id="askRisk" href="#" onclick="openClaude('risk');return false;">
-      <span class="icon">⚠️</span> 檢查風險警示
-    </a>
-  </div>
-  <button class="bubble-btn" onclick="toggleBubble()" title="問 Claude">
-    <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
-      <path d="M13 2C7.477 2 3 6.477 3 12c0 1.89.52 3.66 1.43 5.17L3 22l5.13-1.34A10 10 0 1013 2z" fill="white" fill-opacity=".9"/>
-      <path d="M9 11h8M9 14h5" stroke="#7c6af7" stroke-width="1.8" stroke-linecap="round"/>
-    </svg>
-  </button>
-</div>
 
-<!-- Import Modal -->
-<div id="importModal">
-  <div class="modal-box">
-    <h3>📂 重新匯入持倉</h3>
-    <p>從券商App匯出最新 CSV，拖入下方區域即可更新所有分頁的持倉數據。台股和美股可以只上傳其中一個。</p>
-    <div class="modal-row">
-      <div class="import-zone" id="iz-tw"
-        onclick="document.getElementById('iz-tw-file').click()"
-        ondragover="izDragOver(event,'iz-tw')"
-        ondragleave="izDragLeave('iz-tw')"
-        ondrop="izDrop(event,'tw')">
-        <div class="iz-icon">🇹🇼</div>
-        <div class="iz-title">台股 CSV</div>
-        <div class="iz-sub">證券未實現彙總<br>從券商後台匯出</div>
-        <div class="iz-ok" id="iz-tw-ok" style="display:none">✓ 已讀取</div>
-      </div>
-      <div class="import-zone" id="iz-us"
-        onclick="document.getElementById('iz-us-file').click()"
-        ondragover="izDragOver(event,'iz-us')"
-        ondragleave="izDragLeave('iz-us')"
-        ondrop="izDrop(event,'us')">
-        <div class="iz-icon">🇺🇸</div>
-        <div class="iz-title">美股 CSV</div>
-        <div class="iz-sub">複委託庫存<br>從券商後台匯出</div>
-        <div class="iz-ok" id="iz-us-ok" style="display:none">✓ 已讀取</div>
-      </div>
-    </div>
-    <input type="file" id="iz-tw-file" accept=".csv" style="display:none" onchange="izFile(event,'tw')">
-    <input type="file" id="iz-us-file" accept=".csv" style="display:none" onchange="izFile(event,'us')">
-    <div id="iz-preview" style="font-family:var(--mono);font-size:.68rem;color:var(--muted);min-height:1.5rem;margin-top:.25rem"></div>
-    <div class="modal-footer">
-      <button class="modal-cancel" onclick="closeImport()">取消</button>
-      <button class="modal-import" id="iz-confirm-btn" onclick="confirmImport()" disabled>匯入並更新</button>
-    </div>
-  </div>
-</div>
-
-<script>
 // ── CSV IMPORT ──
 let izParsed = { tw: null, us: null };
 
@@ -1480,6 +1537,109 @@ document.addEventListener('click', e => {
   const m = document.getElementById('importModal');
   if (e.target === m) closeImport();
 });
+</script>
+<!-- CLAUDE BUBBLE -->
+<div id="claudeBubble">
+  <div class="bubble-menu" id="bubbleMenu">
+    <a class="bubble-item" id="askGeneral" href="#" onclick="openClaude('general');return false;">
+      <span class="icon">💬</span> 問 Claude 任何問題
+    </a>
+    <a class="bubble-item" id="askPortfolio" href="#" onclick="openClaude('portfolio');return false;">
+      <span class="icon">📊</span> 分析我的持倉
+    </a>
+    <a class="bubble-item" id="askBuy" href="#" onclick="openClaude('buy');return false;">
+      <span class="icon">🎯</span> 現在可以買什麼
+    </a>
+    <a class="bubble-item" id="askRisk" href="#" onclick="openClaude('risk');return false;">
+      <span class="icon">⚠️</span> 檢查風險警示
+    </a>
+  </div>
+  <button class="bubble-btn" onclick="toggleBubble()" title="問 Claude">
+    <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+      <path d="M13 2C7.477 2 3 6.477 3 12c0 1.89.52 3.66 1.43 5.17L3 22l5.13-1.34A10 10 0 1013 2z" fill="white" fill-opacity=".9"/>
+      <path d="M9 11h8M9 14h5" stroke="#7c6af7" stroke-width="1.8" stroke-linecap="round"/>
+    </svg>
+  </button>
+</div>
+
+<!-- Import Modal -->
+<div id="importModal">
+  <div class="modal-box">
+    <h3>📂 重新匯入持倉</h3>
+    <p>從券商App匯出最新 CSV，拖入下方區域即可更新所有分頁的持倉數據。台股和美股可以只上傳其中一個。</p>
+    <div class="modal-row">
+      <div class="import-zone" id="iz-tw"
+        onclick="document.getElementById('iz-tw-file').click()"
+        ondragover="izDragOver(event,'iz-tw')"
+        ondragleave="izDragLeave('iz-tw')"
+        ondrop="izDrop(event,'tw')">
+        <div class="iz-icon">🇹🇼</div>
+        <div class="iz-title">台股 CSV</div>
+        <div class="iz-sub">證券未實現彙總<br>從券商後台匯出</div>
+        <div class="iz-ok" id="iz-tw-ok" style="display:none">✓ 已讀取</div>
+      </div>
+      <div class="import-zone" id="iz-us"
+        onclick="document.getElementById('iz-us-file').click()"
+        ondragover="izDragOver(event,'iz-us')"
+        ondragleave="izDragLeave('iz-us')"
+        ondrop="izDrop(event,'us')">
+        <div class="iz-icon">🇺🇸</div>
+        <div class="iz-title">美股 CSV</div>
+        <div class="iz-sub">複委託庫存<br>從券商後台匯出</div>
+        <div class="iz-ok" id="iz-us-ok" style="display:none">✓ 已讀取</div>
+      </div>
+    </div>
+    <input type="file" id="iz-tw-file" accept=".csv" style="display:none" onchange="izFile(event,'tw')">
+    <input type="file" id="iz-us-file" accept=".csv" style="display:none" onchange="izFile(event,'us')">
+    <div id="iz-preview" style="font-family:var(--mono);font-size:.68rem;color:var(--muted);min-height:1.5rem;margin-top:.25rem"></div>
+    <div class="modal-footer">
+      <button class="modal-cancel" onclick="closeImport()">取消</button>
+      <button class="modal-import" id="iz-confirm-btn" onclick="confirmImport()" disabled>匯入並更新</button>
+    </div>
+  </div>
+</div>
+
+
+
+<!-- Mobile Bottom Nav -->
+<div class="mobile-bottom-nav" id="mobileNav">
+  <button class="mbn-btn active" onclick="switchMobileTab('overview',this)">
+    <span class="mbn-icon">📊</span>
+    <span class="mbn-label">總覽</span>
+  </button>
+  <button class="mbn-btn" onclick="switchMobileTab('hold',this)">
+    <span class="mbn-icon">🏦</span>
+    <span class="mbn-label">存股</span>
+  </button>
+  <button class="mbn-btn" onclick="switchMobileTab('wave',this)">
+    <span class="mbn-icon">⚡</span>
+    <span class="mbn-label">波段</span>
+  </button>
+  <button class="mbn-btn" onclick="switchMobileTab('ai',this)">
+    <span class="mbn-icon">🤖</span>
+    <span class="mbn-label">分析</span>
+  </button>
+</div>
+
+<script>
+// ── MOBILE TAB SWITCH ──
+function switchMobileTab(tab, btn) {
+  // Switch tab panels
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.mbn-btn').forEach(b => b.classList.remove('active'));
+
+  const panel = document.getElementById('tab-' + tab);
+  if (panel) panel.classList.add('active');
+
+  const topBtn = document.querySelector('[data-tab="' + tab + '"]');
+  if (topBtn) topBtn.classList.add('active');
+
+  if (btn) btn.classList.add('active');
+
+  // Scroll to top smoothly
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
 </script>
 
 <script>
