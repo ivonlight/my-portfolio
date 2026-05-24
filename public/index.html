@@ -547,7 +547,7 @@ main { padding:2rem 2.5rem; max-width:1440px; margin:0 auto; }
   <table class="stk-table">
     <thead><tr>
       <th>標的</th><th>均價</th><th>持股數</th><th style="text-align:right">輸入現價</th>
-      <th>報酬率</th><th>停利目標</th><th>停損線</th><th>警示</th><th>訊號</th>
+      <th>報酬率</th><th>停利目標</th><th>停損線</th><th>技術面</th><th>估值</th><th>警示</th><th>訊號</th>
     </tr></thead>
     <tbody id="waveUsTable"></tbody>
   </table>
@@ -558,7 +558,7 @@ main { padding:2rem 2.5rem; max-width:1440px; margin:0 auto; }
   <table class="stk-table">
     <thead><tr>
       <th>標的</th><th>均價</th><th>持股數</th><th style="text-align:right">輸入現價</th>
-      <th>報酬率</th><th>停利目標</th><th>停損線</th><th>警示</th><th>訊號</th>
+      <th>報酬率</th><th>停利目標</th><th>停損線</th><th>技術面</th><th>估值</th><th>警示</th><th>訊號</th>
     </tr></thead>
     <tbody id="waveTwTable"></tbody>
   </table>
@@ -823,6 +823,48 @@ function renderWaveTable(stocks, tbodyId, isTW) {
     const sharesStr = s.shares != null
       ? (isTW ? s.shares.toLocaleString('zh-TW') : s.shares % 1 === 0 ? s.shares : s.shares.toFixed(2)) + ' 股'
       : '—';
+
+    // Technical cell
+    const techMap = {
+      strong_up:  { icon:'↑↑', color:'var(--green)',  tip:'多頭排列' },
+      up:         { icon:'↑',  color:'var(--green)',  tip:'站上均線' },
+      mixed:      { icon:'—',  color:'var(--muted)',  tip:'混合訊號' },
+      down:       { icon:'↓',  color:'var(--red)',    tip:'跌破均線' },
+    };
+    const techStyle = techMap[s.maSignal] || { icon:'—', color:'var(--muted)', tip:'無資料' };
+
+    const techSigMap = {
+      buy:        { lbl:'低位買進', color:'var(--green)' },
+      watch:      { lbl:'相對低位', color:'var(--blue)' },
+      neutral:    { lbl:'中性',     color:'var(--muted)' },
+      overbought: { lbl:'接近高點', color:'var(--yellow)' },
+      weak:       { lbl:'趨勢偏弱', color:'var(--red)' },
+    };
+    const techSig = techSigMap[s.techSignal] || techSigMap.neutral;
+
+    const w52Pct = s.w52Position != null ? s.w52Position : null;
+    const w52Bar = w52Pct != null ? `
+      <div style="font-family:var(--mono);font-size:.58rem;color:var(--muted);margin-top:.25rem">
+        52週 ${w52Pct}%
+        <div style="width:60px;height:3px;background:var(--border);border-radius:2px;margin-top:.2rem;overflow:hidden;display:inline-block;vertical-align:middle">
+          <div style="width:${w52Pct}%;height:100%;background:${w52Pct<=30?'var(--green)':w52Pct>=80?'var(--red)':'var(--yellow)'};border-radius:2px"></div>
+        </div>
+      </div>` : '';
+
+    const techCell = `
+      <div style="font-size:.7rem;font-weight:600;color:${techStyle.color}">${techStyle.icon} ${techStyle.tip}</div>
+      <div style="font-family:var(--mono);font-size:.6rem;color:${techSig.color};margin-top:.15rem">${techSig.lbl}</div>
+      ${w52Bar}
+      ${s.ma50 ? `<div style="font-family:var(--mono);font-size:.56rem;color:var(--muted);margin-top:.15rem">MA50: ${isTW?Math.round(s.ma50).toLocaleString('zh-TW'):s.ma50?.toFixed(2)||'—'}</div>` : ''}`;
+
+    // Valuation cell
+    const valCell = s.pe || s.fwPe || s.pb ? `
+      ${s.pe   ? `<div style="font-family:var(--mono);font-size:.62rem"><span style="color:var(--muted)">PE </span>${s.pe}</div>` : ''}
+      ${s.fwPe ? `<div style="font-family:var(--mono);font-size:.62rem"><span style="color:var(--muted)">FwPE </span>${s.fwPe}</div>` : ''}
+      ${s.pb   ? `<div style="font-family:var(--mono);font-size:.62rem"><span style="color:var(--muted)">PB </span>${s.pb}</div>` : ''}
+      ${s.roe  ? `<div style="font-family:var(--mono);font-size:.62rem"><span style="color:var(--muted)">ROE </span>${s.roe}%</div>` : ''}
+    ` : '<span style="font-family:var(--mono);font-size:.62rem;color:var(--muted)">—</span>';
+
     tr.innerHTML = `
       <td><span class="sname">${s.name}</span><span class="scode">${s.code}</span></td>
       <td style="font-family:var(--mono)">${fmt(s.cost,isTW)}</td>
@@ -842,7 +884,9 @@ function renderWaveTable(stocks, tbodyId, isTW) {
           <div class="bz-row"><span class="bz-dot" style="background:var(--red)"></span>停損 ${fmt(s.sl,isTW)}</div>
         </div>
       </td>
-      <td><span class="sig ${sig.cls}" id="wsig-${s.code}">${sig.lbl}</span></td>`;
+      <td><span class="sig ${sig.cls}" id="wsig-${s.code}">${sig.lbl}</span></td>
+        <td style="vertical-align:top">${techCell}</td>
+        <td style="vertical-align:top">${valCell}</td>`;
     tbody.appendChild(tr);
   });
 }
@@ -1176,6 +1220,9 @@ async function fetchLivePrices() {
       if (!lp) return;
       s.price = lp.price;
       s.ret = s.cost ? Math.round(((lp.price - s.cost) / s.cost) * 10000) / 100 : s.ret;
+      s.w52High = lp.w52High; s.w52Low = lp.w52Low; s.w52Position = lp.w52Position;
+      s.ma50 = lp.ma50; s.ma200 = lp.ma200; s.maSignal = lp.maSignal; s.techSignal = lp.techSignal;
+      s.pe = lp.pe; s.fwPe = lp.fwPe; s.pb = lp.pb; s.roe = lp.roe;
     });
 
     // Re-render tables with live prices
