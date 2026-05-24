@@ -1694,9 +1694,27 @@ function loadRealizedCSV(e) {
   e.target.value = '';
   const reader = new FileReader();
   reader.onload = ev => {
-    const lines = ev.target.result.split('\n').filter(l => l.trim());
+    // Remove BOM if present
+    let text = ev.target.result;
+    if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+    const lines = text.split(/[\r\n]+/).filter(l => l.trim());
     const trades = [];
+
+    // Parse header to detect column positions
+    const header = lines[0].split(',').map(h => h.split('"').join('').trim());
+    const col = {
+      name:      header.indexOf('股票名稱'),
+      date:      header.indexOf('賣出日期') !== -1 ? header.indexOf('賣出日期') : header.indexOf('日期'),
+      shares:    header.indexOf('股數'),
+      pnl:       header.indexOf('損益'),
+      buyPrice:  header.indexOf('買進單價'),
+      sellPrice: header.indexOf('賣出單價'),
+      ret:       header.indexOf('報酬率'),
+    };
+
     lines.slice(1).forEach(line => {
+      if (!line.trim()) return;
+      // Parse CSV respecting quoted fields
       const cols = [];
       let cur = '', inQ = false;
       for (const ch of line) {
@@ -1705,20 +1723,40 @@ function loadRealizedCSV(e) {
         else { cur += ch; }
       }
       cols.push(cur.trim());
-      if (cols.length < 13) return;
-      const name = cols[0];
-      const sellDate = cols[6] || cols[1];
-      const shares = parseFloat(cols[2].replace(/,/g,'')) || 0;
-      const pnl = parseFloat(cols[3].replace(/,/g,'')) || 0;
-      const buyPrice = parseFloat(cols[7]) || 0;
-      const sellPrice = parseFloat(cols[8]) || 0;
-      const ret = parseFloat(cols[13]) || 0;
+
+      const clean = s => (s||'').split('"').join('').replace(/,/g,'').trim();
+      const name      = clean(cols[col.name] || cols[0]);
+      const sellDate  = clean(cols[col.date] || cols[6] || cols[1]);
+      const shares    = parseFloat(clean(cols[col.shares] || cols[2])) || 0;
+      const pnl       = parseFloat(clean(cols[col.pnl]   || cols[3])) || 0;
+      const buyPrice  = parseFloat(clean(cols[col.buyPrice]  || cols[7])) || 0;
+      const sellPrice = parseFloat(clean(cols[col.sellPrice] || cols[8])) || 0;
+      // Report rate: remove % sign and handle negative
+      const retRaw    = clean(cols[col.ret] || cols[13] || '0');
+      const ret       = parseFloat(retRaw.replace('%','')) || 0;
+
       if (!name || !sellDate || shares === 0) return;
+      // Skip summary rows
+      if (name.includes('總') || name.includes('合計') || name.includes('幣別')) return;
       trades.push({ name, sellDate, shares, pnl, buyPrice, sellPrice, ret });
     });
-    realizedTrades = trades;
+
+    // Merge with existing if needed (append new trades)
+    // Deduplicate by name+sellDate+shares+pnl
+    const key = t => t.name + t.sellDate + t.shares + t.pnl;
+    const existing = new Set(realizedTrades.map(key));
+    const newTrades = trades.filter(t => !existing.has(key(t)));
+    realizedTrades = [...realizedTrades, ...newTrades];
+
     renderRealized();
-    try { localStorage.setItem('realized_trades', JSON.stringify(trades)); } catch(e) {}
+    try { localStorage.setItem('realized_trades', JSON.stringify(realizedTrades)); } catch(e) {}
+
+    // Show toast
+    const t = document.createElement('div');
+    t.textContent = '✓ 匯入 ' + trades.length + ' 筆，共 ' + realizedTrades.length + ' 筆（重複自動略過）';
+    t.style.cssText = 'position:fixed;bottom:5rem;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--gn);border-radius:8px;padding:.6rem 1.25rem;font-family:var(--mono);font-size:.68rem;color:var(--gn);z-index:9999;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.3)';
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 3500);
   };
   reader.readAsText(file, 'UTF-8');
 }
