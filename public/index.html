@@ -303,6 +303,52 @@ main { padding:2rem 2.5rem; max-width:1440px; margin:0 auto; }
 @keyframes spin { to{transform:rotate(360deg)} }
 .spinner { display:inline-block; width:10px; height:10px; border:2px solid rgba(124,106,247,.3); border-top-color:var(--accent); border-radius:50%; animation:spin .6s linear infinite; }
 
+/* ── IMPORT MODAL ── */
+#importModal {
+  display:none; position:fixed; inset:0; z-index:9990;
+  background:rgba(7,8,15,.85); backdrop-filter:blur(8px);
+  align-items:center; justify-content:center;
+}
+#importModal.open { display:flex; }
+.modal-box {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:16px; padding:2rem; width:90%; max-width:560px;
+  animation:fadeUp .25s ease;
+}
+.modal-box h3 {
+  font-family:var(--display); font-size:1.1rem; font-weight:700;
+  margin-bottom:.35rem;
+}
+.modal-box p { font-size:.75rem; color:var(--muted); margin-bottom:1.5rem; line-height:1.6; }
+.modal-row { display:grid; grid-template-columns:1fr 1fr; gap:.75rem; margin-bottom:1rem; }
+.import-zone {
+  border:2px dashed var(--border); border-radius:10px;
+  padding:1.25rem; text-align:center; cursor:pointer;
+  transition:all .2s; position:relative;
+}
+.import-zone:hover { border-color:var(--accent); background:rgba(108,99,255,.05); }
+.import-zone.has-file { border-color:var(--green); background:rgba(45,212,160,.06); }
+.import-zone.dragover { border-color:var(--accent); background:rgba(108,99,255,.08); }
+.import-zone .iz-icon { font-size:1.5rem; margin-bottom:.4rem; }
+.import-zone .iz-title { font-size:.75rem; font-weight:600; margin-bottom:.2rem; }
+.import-zone .iz-sub { font-size:.65rem; color:var(--muted); line-height:1.5; }
+.import-zone .iz-ok { font-size:.7rem; color:var(--green); font-weight:600; margin-top:.3rem; }
+.modal-footer { display:flex; gap:.6rem; margin-top:1.25rem; }
+.modal-cancel { flex:1; padding:.65rem; font-family:var(--mono); font-size:.68rem; letter-spacing:.08em; text-transform:uppercase; border:1px solid var(--border); border-radius:8px; background:none; color:var(--muted); cursor:pointer; transition:all .18s; }
+.modal-cancel:hover { border-color:var(--red); color:var(--red); }
+.modal-import { flex:2; padding:.65rem; font-family:var(--mono); font-size:.68rem; letter-spacing:.08em; text-transform:uppercase; border:none; border-radius:8px; background:var(--accent); color:#fff; cursor:pointer; transition:all .18s; }
+.modal-import:hover { background:#7c75ff; }
+.modal-import:disabled { opacity:.4; cursor:not-allowed; }
+
+/* import button in header */
+.import-btn {
+  font-family:var(--mono); font-size:.6rem; letter-spacing:.07em; text-transform:uppercase;
+  padding:.38rem .85rem; border-radius:6px; border:1px solid rgba(108,99,255,.4);
+  background:rgba(108,99,255,.1); color:var(--accent); cursor:pointer; transition:all .18s;
+  display:flex; align-items:center; gap:.4rem;
+}
+.import-btn:hover { background:rgba(108,99,255,.18); border-color:rgba(108,99,255,.6); }
+
 /* ── CLAUDE BUBBLE ── */
 #claudeBubble {
   position:fixed; bottom:2rem; right:2rem; z-index:9998;
