@@ -851,11 +851,34 @@ function renderWaveTable(stocks, tbodyId, isTW) {
         </div>
       </div>` : '';
 
+    const ma50Str  = s.ma50  ? (isTW ? 'NT$'+Math.round(s.ma50).toLocaleString('zh-TW')  : '$'+s.ma50.toFixed(2))  : null;
+    const ma200Str = s.ma200 ? (isTW ? 'NT$'+Math.round(s.ma200).toLocaleString('zh-TW') : '$'+s.ma200.toFixed(2)) : null;
+    const priceVsMa50  = s.ma50  && s.price ? ((s.price - s.ma50)  / s.ma50  * 100) : null;
+    const priceVsMa200 = s.ma200 && s.price ? ((s.price - s.ma200) / s.ma200 * 100) : null;
+    const ma50Color  = priceVsMa50  != null ? (priceVsMa50  >= 0 ? 'var(--green)' : 'var(--red)') : 'var(--muted)';
+    const ma200Color = priceVsMa200 != null ? (priceVsMa200 >= 0 ? 'var(--green)' : 'var(--red)') : 'var(--muted)';
+
     const techCell = `
-      <div style="font-size:.7rem;font-weight:600;color:${techStyle.color}">${techStyle.icon} ${techStyle.tip}</div>
-      <div style="font-family:var(--mono);font-size:.6rem;color:${techSig.color};margin-top:.15rem">${techSig.lbl}</div>
+      <div style="font-size:.68rem;font-weight:600;color:${techStyle.color};margin-bottom:.3rem">${techStyle.icon} ${techStyle.tip}</div>
+      ${ma50Str ? `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.2rem">
+          <span style="font-family:var(--mono);font-size:.58rem;color:var(--muted)">月線 MA50</span>
+          <span style="font-family:var(--mono);font-size:.68rem;font-weight:500">${ma50Str}</span>
+        </div>
+        <div style="font-family:var(--mono);font-size:.6rem;color:${ma50Color};margin-bottom:.3rem">
+          現價 ${priceVsMa50>=0?'+':''}${priceVsMa50?.toFixed(1)}% vs MA50
+        </div>` : ''}
+      ${ma200Str ? `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.2rem">
+          <span style="font-family:var(--mono);font-size:.58rem;color:var(--muted)">年線 MA200</span>
+          <span style="font-family:var(--mono);font-size:.68rem;font-weight:500">${ma200Str}</span>
+        </div>
+        <div style="font-family:var(--mono);font-size:.6rem;color:${ma200Color};margin-bottom:.3rem">
+          現價 ${priceVsMa200>=0?'+':''}${priceVsMa200?.toFixed(1)}% vs MA200
+        </div>` : ''}
       ${w52Bar}
-      ${s.ma50 ? `<div style="font-family:var(--mono);font-size:.56rem;color:var(--muted);margin-top:.15rem">MA50: ${isTW?Math.round(s.ma50).toLocaleString('zh-TW'):s.ma50?.toFixed(2)||'—'}</div>` : ''}`;
+      <div style="font-family:var(--mono);font-size:.58rem;color:${techSig.color};margin-top:.25rem;font-weight:500">${techSig.lbl}</div>
+    `;
 
     // Valuation cell
     const valCell = s.pe || s.fwPe || s.pb ? `
