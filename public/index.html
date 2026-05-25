@@ -611,20 +611,20 @@ main { padding:2rem 2.5rem; max-width:1440px; margin:0 auto; }
       <div class="s-val">$967,324</div>
       <div class="s-sub pos">+34.05% 美股以匯率換算</div>
     </div>
-    <div class="s-card g" style="animation-delay:.1s">
+    <div class="s-card y" style="animation-delay:.1s">
+      <div class="s-label">基金損益 TWD</div>
+      <div class="s-val pos">+$5,872</div>
+      <div class="s-sub pos">+6.75%　現值 $92,872</div>
+    </div>
+    <div class="s-card g" style="animation-delay:.15s">
       <div class="s-label">台股損益 TWD</div>
       <div class="s-val pos">+$206,949</div>
       <div class="s-sub pos">+54.54%　現值 $586,388</div>
     </div>
-    <div class="s-card g" style="animation-delay:.15s">
+    <div class="s-card g" style="animation-delay:.2s">
       <div class="s-label">美股損益 USD</div>
       <div class="s-val pos">+$1,045</div>
       <div class="s-sub pos">+13.41%　現值 $8,838</div>
-    </div>
-    <div class="s-card y" style="animation-delay:.2s">
-      <div class="s-label">基金損益 TWD</div>
-      <div class="s-val pos">+$5,872</div>
-      <div class="s-sub pos">+6.75%　現值 $92,872</div>
     </div>
     <div class="s-card r" style="animation-delay:.25s">
       <div class="s-label">智能投資 TWD</div>
@@ -657,9 +657,9 @@ main { padding:2rem 2.5rem; max-width:1440px; margin:0 auto; }
           <text x="55" y="63" text-anchor="middle" fill="#52527a" font-family="DM Mono" font-size="7.5">ASSETS</text>
         </svg>
         <div class="legend-list">
+          <div class="leg-item"><span class="leg-name"><span class="leg-dot" style="background:#7c6af7"></span>基金</span><span class="leg-pct">8.6%</span></div>
           <div class="leg-item"><span class="leg-name"><span class="leg-dot" style="background:#7c6af7"></span>台股</span><span class="leg-pct">54.0%</span></div>
           <div class="leg-item"><span class="leg-name"><span class="leg-dot" style="background:#3ecf8e"></span>美股</span><span class="leg-pct">25.7%</span></div>
-          <div class="leg-item"><span class="leg-name"><span class="leg-dot" style="background:#f0c05c"></span>基金</span><span class="leg-pct">8.6%</span></div>
           <div class="leg-item"><span class="leg-name"><span class="leg-dot" style="background:#f05c5c"></span>智能</span><span class="leg-pct">0.9%</span></div>
           <div class="leg-item"><span class="leg-name"><span class="leg-dot" style="background:#333"></span>現金</span><span class="leg-pct">~10.8%</span></div>
         </div>
@@ -1222,8 +1222,8 @@ function renderUnrealized() {
   const fundPnl = holdFunds.reduce((s,f) => s + ((f.totalValue||0) - (f.totalCost||0)), 0);
 
   const items = [
-    { label:'台股帳面損益', val:twPnl,   isTW:true },
     { label:'基金帳面損益', val:fundPnl,  isTW:true },
+    { label:'台股帳面損益', val:twPnl,    isTW:true },
     { label:'美股帳面損益', val:usPnl,    isTW:false },
     { label:'台股+基金合計', val:twPnl+fundPnl, isTW:true, highlight:true },
   ];
@@ -1241,11 +1241,16 @@ function renderUnrealized() {
 
 function renderReturnChart() {
   const all = [
-    {l:'TSLA',r:37.65,c:'#3ecf8e'},{l:'0050',r:93.88,c:'#7c6af7'},
-    {l:'聯發科',r:20.02,c:'#3ecf8e'},{l:'NVDA',r:24.81,c:'#3ecf8e'},
-    {l:'TSM',r:19.63,c:'#7c6af7'},{l:'QQQ',r:24.66,c:'#52527a'},
-    {l:'台積電',r:36.5,c:'#7c6af7'},{l:'凌航',r:6.97,c:'#7c6af7'},
-    {l:'華懋',r:-8.82,c:'#f05c5c'},{l:'PLTR',r:3.23,c:'#5cb8f0'},
+    // 基金
+    {l:'安聯科技',r:8.07,c:'#f0c05c'},{l:'台日雙星',r:-0.75,c:'#f05c5c'},
+    // 台股
+    {l:'0050',r:93.88,c:'#7c6af7'},{l:'台積電',r:36.5,c:'#7c6af7'},
+    {l:'凱基T',r:14.06,c:'#7c6af7'},{l:'聯發科',r:20.02,c:'#7c6af7'},
+    {l:'凌航',r:6.97,c:'#7c6af7'},{l:'華懋',r:-8.82,c:'#f05c5c'},
+    // 美股
+    {l:'TSLA',r:37.65,c:'#3ecf8e'},{l:'NVDA',r:24.81,c:'#3ecf8e'},
+    {l:'QQQ',r:24.66,c:'#5cb4f0'},{l:'TSM',r:19.63,c:'#3ecf8e'},
+    {l:'PLTR',r:3.23,c:'#3ecf8e'},
   ].sort((a,b)=>b.r-a.r);
   const max = Math.max(...all.map(d=>Math.abs(d.r)));
   const container = document.getElementById('returnChart');
@@ -1289,50 +1294,55 @@ let currentAIMode = null;
 const aiPrompts = {
   portfolio: `你是一位專業的投資組合分析師。以下是用戶目前的持倉數據，請用繁體中文給出具體、簡潔的分析：
 
+【基金】安聯台灣科技(+8.07%，本金$74,000)、路博邁台日雙星(-0.75%，本金$13,000)
+
 【台股持倉】
-- 0050 元大台灣50：成本 $50.1，現價 $97.3，+93.88%，市值 $330,951
-- 2330 台積電：成本 $1,645，現價 $2,255，+36.5%，市值 $139,349
-- 2454 聯發科：成本 $3,205，現價 $3,860，+20%，市值 $7,696
-- 5292 華懋：成本 $239.84，現價 $219.5，-8.82%，市值 $9,627
-- 其他台股小倉位：凌航(+6.97%)、雷虎(+4.18%)
+- 0050 元大台灣50：3,408股，成本 $50.1，現價 $97.3，+93.88%
+- 凱基台灣T 009816：3,225股，成本 $12.88，現價 $14.72，+14.06%
+- 2330 台積電：62股，成本 $1,645，現價 $2,295，+39.4%
+- 2454 聯發科：1股，成本 $3,100，現價 $4,245，+36.9%
+- 5292 華懋：44股，成本 $239.84，現價 $220.5，-8.5% ⚠️
+- 凌航(+7%)、雷虎(+4%)
 
 【美股持倉（USD）】
-- BRK/B：均價 $474，現價 $479.98，+0.34%（存股）
-- QQQ：均價 $571，現價 $714.51，+24.66%（存股）
-- NVDA：兩批均價 $152/$204，現價 $219.51，綜合+24.81%
-- TSLA：均價 $303.57，現價 $417.85，+37.65%
-- PLTR：均價 $133.11，現價 $137.42，+3.23%
-- TSM：均價 $340.34，現價 $407.15，+19.63%
-
-【基金】安聯台灣科技(+8.07%)、路博邁台日雙星(-0.75%)
+- BRK/B：7.57股，均價 $474.52，現價 $479.98（存股）
+- QQQ：3.06股，均價 $571.05，現價 $714.51，+25%（存股）
+- NVDA：10.87股，均價 $174.9，現價 $219.51，+25.5%
+- TSLA：0.89股，均價 $303.57，現價 $417.85，+37.65%
+- PLTR：1股，均價 $133.11，現價 $137.42，+3.23%
+- TSM：0.29股，均價 $340.34，現價 $407.15，+19.63%
 
 請針對：1)整體組合健康度 2)最需要關注的3個風險點 3)建議的下一步行動，各給出2-3句具體建議。格式清楚、不用廢話。`,
 
   buy: `你是一位專業投資顧問。用戶有以下存股標的，想知道現在是否是好的加碼時機：
 
-- 0050 元大台灣50：均價 $50.1，現價 $97.3（+93.88%）
-- 台積電 2330：均價 $1,645，現價 $2,255（+36.5%）
-- BRK/B：均價 $474，現價 $479.98（+0.34%）
-- QQQ：均價 $571，現價 $714.51（+24.66%）
+【基金】安聯台灣科技：本金$74,000，+8.07%。路博邁台日雙星：本金$13,000，-0.75%。
 
-請用繁體中文針對每一檔，說明：
-1. 現在加碼是否合理（從估值、技術面角度）
-2. 建議等到什麼價位再加碼
-3. 如果現在就要買，應該用什麼策略（一次買/分批/等回調）
+【台股存股】
+- 0050 元大台灣50：3,408股，均價 $50.1，現價 $97.3（+93.88%）
+- 凱基台灣T 009816：3,225股，均價 $12.88，現價 $14.72（+14.06%）
+- 台積電 2330：62股，均價 $1,645，現價 $2,295（+39.4%）
 
-回答要具體、有數字，不要模糊帶過。`,
+【美股存股】
+- BRK/B：7.57股，均價 $474.52，現價 $479.98（+1.15%）
+- QQQ：3.06股，均價 $571.05，現價 $714.51（+25.1%）
+
+請用繁體中文針對每一檔，說明：1.現在加碼是否合理 2.建議等到什麼價位 3.建議策略`,
 
   risk: `你是一位風險管理顧問。以下投資組合有哪些需要立即關注的風險，請用繁體中文回答：
 
-持倉重點：
-- 台積電相關曝險：持有2330現股 + TSM ADR + 0050（內含台積電約35%），三重曝險
-- TSLA +37.65% 未鎖利
-- 華懋5292 -8.82% 持續虧損
-- NVDA兩批成本差距大（$152 vs $204）
-- 基金路博邁台日雙星 -0.75%
+【基金】路博邁台日雙星 -0.75%（本金$13,000）
 
-請針對每個風險點說明：1)具體風險是什麼 2)建議立即做什麼 3)設什麼警示價位。
-格式要清楚，數字要具體。`
+【台股風險】
+- 台積電三重曝險：2330現股 + TSM ADR + 0050（內含台積電約35%）
+- 華懋5292 -8.5% 持續虧損（44股）
+- 凌航已達52週高點
+
+【美股風險】
+- TSLA +37.65% 未鎖利（0.89股）
+- NVDA均價 $174.9，10.87股，+25.5%
+
+請針對每個風險點說明：1)具體風險 2)建議立即做什麼 3)設什麼警示價位。格式要清楚，數字要具體。`
 };
 
 function runAI(mode) {
