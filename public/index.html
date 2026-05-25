@@ -507,7 +507,7 @@ main { padding:2rem 2.5rem; max-width:1440px; margin:0 auto; }
 @media(max-width:900px) {
   .mobile-bottom-nav { display: grid; }
   #dashboard main, #dashboard > div[style] { padding-bottom: 5rem; }
-  #claudeBubble { bottom: 4.5rem; }
+  #claudeBubble { bottom: 5.5rem; right: 1rem; }
   /* Hide top tab nav on mobile - use bottom nav instead */
   .tab-nav { display: none; }
 }
@@ -770,6 +770,9 @@ main { padding:2rem 2.5rem; max-width:1440px; margin:0 auto; }
         🇺🇸 美股已實現
       </button>
       <input type="file" id="realizedUsFile" accept=".csv" style="display:none" onchange="loadRealizedCSV(event,'us')">
+      <button id="exportRealizedBtn" onclick="exportRealized()" style="display:none;font-family:var(--mono);font-size:.6rem;letter-spacing:.07em;text-transform:uppercase;padding:.38rem .85rem;border-radius:6px;border:1px solid rgba(108,99,255,.4);background:rgba(108,99,255,.08);color:var(--accent);cursor:pointer;margin-right:.3rem">匯出備份</button>
+      <input type="file" id="importBackupFile" accept=".json" style="display:none" onchange="importBackup(event)">
+      <button onclick="document.getElementById('importBackupFile').click()" style="font-family:var(--mono);font-size:.6rem;letter-spacing:.07em;text-transform:uppercase;padding:.38rem .85rem;border-radius:6px;border:1px solid var(--border);background:none;color:var(--muted);cursor:pointer;margin-right:.3rem">還原備份</button>
       <button id="clearRealizedBtn" onclick="clearRealized()" style="display:none;font-family:var(--mono);font-size:.6rem;letter-spacing:.07em;text-transform:uppercase;padding:.38rem .85rem;border-radius:6px;border:1px solid var(--border);background:none;color:var(--muted);cursor:pointer;transition:all .18s" onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">清除</button>
     </div>
   </div>
@@ -1552,15 +1555,20 @@ function izParseFile(file, market) {
 function confirmImport() {
   // Update the private dashboard arrays
   if (izParsed.tw) {
-    // Map parsed rows to waveUS/waveTW format, preserving existing tp1/tp2/sl
     izParsed.tw.forEach(parsed => {
-      // Try to find existing stock and update price/shares/cost
-      const existing = [...waveTW, ...holdTW].find(s => s.code === parsed.code);
+      // Match by code OR name (TW CSV uses name as first column)
+      const existing = [...waveTW, ...holdTW].find(s =>
+        s.code === parsed.code ||
+        s.name === parsed.name ||
+        s.name === parsed.code  // CSV first col might be name
+      );
       if (existing) {
-        existing.price = parsed.price;
+        existing.price  = parsed.price;
         existing.shares = parsed.shares;
-        existing.cost = parsed.cost;
-        existing.ret = parsed.cost ? Math.round(((parsed.price - parsed.cost) / parsed.cost) * 10000) / 100 : existing.ret;
+        existing.cost   = parsed.cost;
+        existing.ret    = parsed.cost
+          ? Math.round(((parsed.price - parsed.cost) / parsed.cost) * 10000) / 100
+          : existing.ret;
       }
     });
   }
@@ -1575,6 +1583,16 @@ function confirmImport() {
       }
     });
   }
+  // Count how many matched
+  let matchedCount = 0;
+  const allCurrent = [...waveTW, ...holdTW, ...waveUS, ...holdUS];
+  if (izParsed.tw) izParsed.tw.forEach(p => {
+    if (allCurrent.find(s => s.code===p.code || s.name===p.name || s.name===p.code)) matchedCount++;
+  });
+  if (izParsed.us) izParsed.us.forEach(p => {
+    if (allCurrent.find(s => s.code===p.code || s.code===p.code.replace('-','/'))) matchedCount++;
+  });
+
   closeImport();
   document.getElementById('updateTime').textContent = new Date().toLocaleString('zh-TW',
     {year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
@@ -1590,7 +1608,7 @@ function confirmImport() {
   renderWaveTable(waveTW, 'waveTwTable', true);
   renderReturnChart();
   const t = document.createElement('div');
-  const msg = '✓ 匯入完成'+(izParsed.tw?'　台股 '+izParsed.tw.length+'筆':'')+(izParsed.us?'　美股 '+izParsed.us.length+'筆':'');
+  const msg = '✓ 更新 '+matchedCount+' 檔持倉'+(izParsed.tw?'　台股 '+izParsed.tw.length+'筆':'')+(izParsed.us?'　美股 '+izParsed.us.length+'筆':'');
   t.textContent = msg;
   t.style.cssText = 'position:fixed;bottom:5rem;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--green);border-radius:8px;padding:.6rem 1.25rem;font-family:var(--mono);font-size:.7rem;color:var(--green);z-index:9999;animation:fadeUp .3s ease;box-shadow:0 4px 16px rgba(0,0,0,.3);white-space:nowrap';
   document.body.appendChild(t);
@@ -1823,6 +1841,8 @@ function renderRealized() {
   document.getElementById('realizedSummary').style.display = 'block';
   document.getElementById('realizedEmpty').style.display = 'none';
   document.getElementById('clearRealizedBtn').style.display = 'inline-flex';
+  const expBtn = document.getElementById('exportRealizedBtn');
+  if (expBtn) expBtn.style.display = 'inline-flex';
 
   const now = new Date();
   const day = now.getDay();
@@ -1935,6 +1955,49 @@ function renderPeriodTable(id, label, trades, totalPnl) {
         </table>
       </div>
     </div>`;
+}
+
+// Export realized data as JSON backup
+function exportRealized() {
+  if (!realizedTrades.length) return;
+  const data = JSON.stringify(realizedTrades, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'realized_backup_' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// Import JSON backup
+function importBackup(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  e.target.value = '';
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (!Array.isArray(data)) throw new Error('格式錯誤');
+      // Merge with existing
+      const key = t => t.name + t.sellDate + t.shares + t.pnl;
+      const existing = new Set(realizedTrades.map(key));
+      const newTrades = data.filter(t => !existing.has(key(t)));
+      realizedTrades = [...realizedTrades, ...newTrades];
+      renderRealized();
+      try { localStorage.setItem('realized_trades', JSON.stringify(realizedTrades)); } catch(e) {}
+      // Show success
+      const t = document.createElement('div');
+      t.textContent = '✓ 還原成功，共 ' + realizedTrades.length + ' 筆';
+      t.style.cssText = 'position:fixed;bottom:5rem;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--gn);border-radius:8px;padding:.6rem 1.25rem;font-family:var(--mono);font-size:.68rem;color:var(--gn);z-index:9999;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.3)';
+      document.body.appendChild(t);
+      setTimeout(() => t.remove(), 3000);
+    } catch(err) {
+      alert('還原失敗：' + err.message);
+    }
+  };
+  reader.readAsText(file);
 }
 
 // Auto-load saved realized data
