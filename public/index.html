@@ -1525,12 +1525,24 @@ function izParseFile(file, market) {
     const lines = e.target.result.split('\n').filter(l => l.trim());
     const rows = [];
     lines.slice(1).forEach(line => {
-      const c = line.split(',').map(v => v.split('"').join('').trim());
-      if (!c[0] || c[0].includes('總') || c[0].includes('幣別')) return;
+      // Parse CSV respecting quoted fields (e.g. "3,408")
+      const c = [];
+      let cur2 = '', inQ2 = false;
+      for (const ch of line) {
+        if (ch === '"') { inQ2 = !inQ2; }
+        else if (ch === ',' && !inQ2) { c.push(cur2.trim()); cur2 = ''; }
+        else { cur2 += ch; }
+      }
+      c.push(cur2.trim());
+      if (!c[0] || c[0].includes('總') || c[0].includes('幣別') || c[0].includes('融資')) return;
       if (market === 'tw') {
-        const name=c[0], shares=parseFloat(c[1]?.replace(/,/g,''))||0;
-        const cost=parseFloat(c[4])||0, price=parseFloat(c[5])||0;
-        if (name && shares>0) rows.push({code:c[0]||name,name,shares,cost,price,type:'存股',market:'tw'});
+        // Format: 股票名稱,股數,總損益,交易別,成交均價,市價,...
+        const clean = s => (s||'').replace(/,/g,'').trim();
+        const name   = clean(c[0]);
+        const shares = parseFloat(clean(c[1])) || 0;
+        const cost   = parseFloat(clean(c[4])) || 0;  // 成交均價
+        const price  = parseFloat(clean(c[5])) || 0;  // 市價
+        if (name && shares > 0) rows.push({code:name, name, shares, cost, price, type:'存股', market:'tw'});
       } else {
         const code=c[0],name=c[1]||c[0];
         const price=parseFloat(c[2])||0,shares=parseFloat(c[3]?.replace(/,/g,''))||0;
@@ -1912,23 +1924,45 @@ function renderPeriodTable(id, label, trades, totalPnl) {
   const sorted = sortByDate(trades);
 
 
-  // Build separate sections for TW and US
-  const buildRows = (arr) => sortByDate(arr).map((t,i) => {
-    const isUS = t.currency === 'USD' || t.market === 'us';
-    const fmtAmt = (v) => isUS ? '$'+Math.abs(v).toFixed(2) : 'NT$'+Math.abs(Math.round(v)).toLocaleString('zh-TW');
-    const pnlStr2 = (t.pnl>=0?'+':'-')+fmtAmt(t.pnl);
-    const buyStr = isUS ? '$'+t.buyPrice.toFixed(2) : 'NT$'+Math.round(t.buyPrice).toLocaleString('zh-TW');
-    const sellStr= isUS ? '$'+t.sellPrice.toFixed(2) : 'NT$'+Math.round(t.sellPrice).toLocaleString('zh-TW');
-    const sharesStr = isUS ? parseFloat(t.shares).toFixed(5).replace(/0+$/,'').replace(/\.$/,'') : Number(t.shares).toLocaleString('zh-TW');
-    return `<tr style="animation-delay:${i*.03}s">
-      <td><span class="sname">${t.name}</span><span class="scode">${t.sellDate}</span></td>
-      <td style="font-family:var(--mono)">${sharesStr}</td>
-      <td style="font-family:var(--mono)">${buyStr}</td>
-      <td style="font-family:var(--mono)">${sellStr}</td>
-      <td><span class="ret-pill ${t.ret>=0?'pos':'neg'}">${t.ret>=0?'+':''}${t.ret.toFixed(2)}%</span></td>
-      <td class="${t.pnl>=0?'pos':'neg'}" style="font-family:var(--mono);font-weight:600">${pnlStr2}</td>
-    </tr>`;
-  }).join('');
+  // Group by stock name, sum PnL, weighted avg return
+  const groupByStock = (arr) => {
+    const map = {};
+    arr.forEach(t => {
+      const key = t.name;
+      if (!map[key]) {
+        map[key] = { name:t.name, currency:t.currency, market:t.market,
+          pnl:0, totalCost:0, totalSell:0, count:0, lastDate:t.sellDate };
+      }
+      map[key].pnl       += t.pnl;
+      map[key].totalCost += t.buyCost  || (t.buyPrice  * t.shares);
+      map[key].totalSell += t.sellAmt  || (t.sellPrice * t.shares);
+      map[key].count     += 1;
+      // Keep latest date
+      if (t.sellDate > map[key].lastDate) map[key].lastDate = t.sellDate;
+    });
+    return Object.values(map).sort((a,b) => b.pnl - a.pnl);
+  };
+
+  const buildRows = (arr) => {
+    const grouped = groupByStock(arr);
+    return grouped.map((g,i) => {
+      const isUS = g.currency === 'USD' || g.market === 'us';
+      const ret = g.totalCost > 0 ? (g.pnl / g.totalCost * 100) : 0;
+      const fmtAmt = (v) => isUS ? '$'+Math.abs(v).toFixed(2) : 'NT$'+Math.abs(Math.round(v)).toLocaleString('zh-TW');
+      const pnlStr2 = (g.pnl>=0?'+':'-')+fmtAmt(g.pnl);
+      return `<tr style="animation-delay:${i*.04}s">
+        <td>
+          <span class="sname">${g.name}</span>
+          <span class="scode">${g.count > 1 ? g.count+'筆合計' : g.lastDate}</span>
+        </td>
+        <td style="font-family:var(--mono);color:var(--muted)">${g.count > 1 ? g.count+' 筆' : '1 筆'}</td>
+        <td></td>
+        <td></td>
+        <td><span class="ret-pill ${ret>=0?'pos':'neg'}">${ret>=0?'+':''}${ret.toFixed(2)}%</span></td>
+        <td class="${g.pnl>=0?'pos':'neg'}" style="font-family:var(--mono);font-weight:600">${pnlStr2}</td>
+      </tr>`;
+    }).join('');
+  };
 
   const twSection = twTr.length ? `
     <tr><td colspan="6" style="padding:.4rem .85rem;background:rgba(108,99,255,.08);font-family:var(--mono);font-size:.56rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);border-bottom:1px solid var(--border)">
@@ -1950,7 +1984,7 @@ function renderPeriodTable(id, label, trades, totalPnl) {
       </div>
       <div class="period-wrap">
         <table class="r-tbl">
-          <thead><tr><th>股票</th><th>股數</th><th>買進價</th><th>賣出價</th><th>報酬率</th><th>損益</th></tr></thead>
+          <thead><tr><th>股票</th><th>筆數</th><th></th><th></th><th>報酬率</th><th>損益</th></tr></thead>
           <tbody>${twSection}${usSection}</tbody>
         </table>
       </div>
