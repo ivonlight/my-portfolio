@@ -633,6 +633,12 @@ main { padding:2rem 2.5rem; max-width:1440px; margin:0 auto; }
     </div>
   </div>
 
+    <!-- 帳面損益彙總 -->
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.25rem 1.5rem;margin-bottom:1.5rem;animation:fadeUp .4s ease both">
+    <div style="font-family:var(--mono);font-size:.58rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:1rem">預估帳面損益</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem" id="unrealizedGrid"></div>
+  </div>
+
   <div class="charts-row">
     <div class="chart-card" style="animation-delay:.1s">
       <h3>資產配置</h3>
@@ -696,18 +702,8 @@ main { padding:2rem 2.5rem; max-width:1440px; margin:0 auto; }
     判斷邏輯：現價 vs 均價距離 / 近期高低點位置 / 是否在合理買進區間
   </p>
 
-  <!-- US Hold -->
-  <div class="sec-hd"><h2>美股存股</h2><div class="ln"></div><div class="bdg">USD</div></div>
-  <table class="stk-table">
-    <thead><tr>
-      <th>標的</th><th>均價 / 現價</th><th style="text-align:right">輸入新價格</th>
-      <th>距均價</th><th>買進區間</th><th>訊號</th><th>說明</th>
-    </tr></thead>
-    <tbody id="holdUsTable"></tbody>
-  </table>
-
   <!-- TW Hold -->
-  <div class="sec-hd" style="margin-top:2rem"><h2>台股存股</h2><div class="ln"></div><div class="bdg">TWD</div></div>
+  <div class="sec-hd" style="margin-top:.5rem"><h2>台股存股</h2><div class="ln"></div><div class="bdg">TWD</div></div>
   <table class="stk-table">
     <thead><tr>
       <th>標的</th><th>均價 / 現價</th><th style="text-align:right">輸入新價格</th>
@@ -725,22 +721,21 @@ main { padding:2rem 2.5rem; max-width:1440px; margin:0 auto; }
     </tr></thead>
     <tbody id="holdFundTable"></tbody>
   </table>
+
+  <!-- US Hold -->
+  <div class="sec-hd" style="margin-top:2rem"><h2>美股存股</h2><div class="ln"></div><div class="bdg">USD</div></div>
+  <table class="stk-table">
+    <thead><tr>
+      <th>標的</th><th>均價 / 現價</th><th style="text-align:right">輸入新價格</th>
+      <th>距均價</th><th>買進區間</th><th>訊號</th><th>說明</th>
+    </tr></thead>
+    <tbody id="holdUsTable"></tbody>
+  </table>
 </div>
 
 <!-- ══════════════ TAB: 波段操作 ══════════════ -->
 <div class="tab-panel" id="tab-wave">
   <div class="sec-hd" style="margin-top:.5rem">
-    <h2>美股波段</h2><div class="ln"></div><div class="bdg">USD · 複委託</div>
-  </div>
-  <table class="stk-table">
-    <thead><tr>
-      <th>標的</th><th>均價</th><th>持股數</th><th style="text-align:right">輸入現價</th>
-      <th>報酬率</th><th>停利目標</th><th>停損線</th><th>52週位置</th><th>警示</th><th>訊號</th>
-    </tr></thead>
-    <tbody id="waveUsTable"></tbody>
-  </table>
-
-  <div class="sec-hd" style="margin-top:2rem">
     <h2>台股波段</h2><div class="ln"></div><div class="bdg">TWD</div>
   </div>
   <table class="stk-table">
@@ -749,6 +744,17 @@ main { padding:2rem 2.5rem; max-width:1440px; margin:0 auto; }
       <th>報酬率</th><th>停利目標</th><th>停損線</th><th>52週位置</th><th>警示</th><th>訊號</th>
     </tr></thead>
     <tbody id="waveTwTable"></tbody>
+  </table>
+
+  <div class="sec-hd" style="margin-top:2rem">
+    <h2>美股波段</h2><div class="ln"></div><div class="bdg">USD · 複委託</div>
+  </div>
+  <table class="stk-table">
+    <thead><tr>
+      <th>標的</th><th>均價</th><th>持股數</th><th style="text-align:right">輸入現價</th>
+      <th>報酬率</th><th>停利目標</th><th>停損線</th><th>52週位置</th><th>警示</th><th>訊號</th>
+    </tr></thead>
+    <tbody id="waveUsTable"></tbody>
   </table>
 </div>
 
@@ -1202,6 +1208,37 @@ function updateWave(code, isTW) {
 // ─────────────────────────────────────────────
 // RENDER: RETURN CHART (overview)
 // ─────────────────────────────────────────────
+function renderUnrealized() {
+  const grid = document.getElementById('unrealizedGrid');
+  if (!grid) return;
+  const twPnl = [...holdTW, ...waveTW].reduce((s,t) => {
+    if (!t.price || !t.cost || !t.shares) return s;
+    return s + (t.price - t.cost) * t.shares;
+  }, 0);
+  const usPnl = [...holdUS, ...waveUS].reduce((s,t) => {
+    if (!t.price || !t.cost || !t.shares) return s;
+    return s + (t.price - t.cost) * t.shares;
+  }, 0);
+  const fundPnl = holdFunds.reduce((s,f) => s + ((f.totalValue||0) - (f.totalCost||0)), 0);
+
+  const items = [
+    { label:'台股帳面損益', val:twPnl,   isTW:true },
+    { label:'基金帳面損益', val:fundPnl,  isTW:true },
+    { label:'美股帳面損益', val:usPnl,    isTW:false },
+    { label:'台股+基金合計', val:twPnl+fundPnl, isTW:true, highlight:true },
+  ];
+  grid.innerHTML = items.map(item => {
+    const pos = item.val >= 0;
+    const fmtVal = item.isTW
+      ? (pos?'+':'-')+'NT$'+Math.abs(Math.round(item.val)).toLocaleString('zh-TW')
+      : (pos?'+':'-')+'$'+Math.abs(item.val).toFixed(2)+' USD';
+    return `<div style="padding:.75rem 1rem;background:var(--surface2);border:1px solid ${item.highlight?'rgba(108,99,255,.35)':'var(--border)'};border-radius:8px">
+      <div style="font-family:var(--mono);font-size:.54rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.4rem">${item.label}</div>
+      <div style="font-family:var(--mono);font-size:.95rem;font-weight:600" class="${pos?'pos':'neg'}">${fmtVal}</div>
+    </div>`;
+  }).join('');
+}
+
 function renderReturnChart() {
   const all = [
     {l:'TSLA',r:37.65,c:'#3ecf8e'},{l:'0050',r:93.88,c:'#7c6af7'},
@@ -1516,6 +1553,7 @@ async function fetchLivePrices() {
     renderWaveTable(waveUS, 'waveUsTable', false);
     renderWaveTable(waveTW, 'waveTwTable', true);
     renderReturnChart();
+    renderUnrealized();
     _fetching = false;
 
     // Update header time
@@ -1680,6 +1718,7 @@ function confirmImport() {
   renderWaveTable(waveUS, 'waveUsTable', false);
   renderWaveTable(waveTW, 'waveTwTable', true);
   renderReturnChart();
+  renderUnrealized();
   const t = document.createElement('div');
   const msg = '✓ 更新 '+matchedCount+' 檔持倉'+(izParsed.tw?'　台股 '+izParsed.tw.length+'筆':'')+(izParsed.us?'　美股 '+izParsed.us.length+'筆':'');
   t.textContent = msg;
