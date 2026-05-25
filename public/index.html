@@ -1052,6 +1052,14 @@ function updateFund(code) {
   const val = parseFloat(inp.value);
   if (isNaN(val) || val <= 0) return;
   s.totalValue = val;
+
+  // Save to localStorage
+  try {
+    const saved = JSON.parse(localStorage.getItem('fund_values') || '{}');
+    saved[code] = val;
+    localStorage.setItem('fund_values', JSON.stringify(saved));
+  } catch(e) {}
+
   const pnl = val - (s.totalCost || 0);
   const ret = s.totalCost ? (pnl / s.totalCost * 100) : 0;
   const pnlEl = document.getElementById('fpnl-' + code);
@@ -1065,6 +1073,16 @@ function updateFund(code) {
   inp.classList.add('updated');
   setTimeout(() => inp.classList.remove('updated'), 600);
 }
+
+// Load saved fund values on startup
+(function loadFundValues() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('fund_values') || '{}');
+    holdFunds.forEach(s => {
+      if (saved[s.code] != null) s.totalValue = saved[s.code];
+    });
+  } catch(e) {}
+})();
 
 function updateHold(code) {
   const s = allHoldStocks.find(x => x.code === code);
