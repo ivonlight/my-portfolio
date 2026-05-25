@@ -877,16 +877,14 @@ const holdTW = [
   },
   {
     code:'0050', name:'元大台灣50',
-    cost: 50.1,
-    price: 97.3,
+    cost: 50.1, shares: 3408, price: 97.3,
     strongBuy: 88, buy: 92, fair: 98, rich: 108,
     note:'現價接近合理偏高區。定期定額繼續，單筆加碼等回測 $92 以下。',
     isTW: true
   },
   {
     code:'2330', name:'台積電',
-    cost: 1645.85,
-    price: 2255,
+    cost: 1645.85, shares: 62, price: 2255,
     strongBuy: 1900, buy: 2050, fair: 2300, rich: 2600,
     note:'現價在合理區間上緣。等回測 $2,050 以下再加碼，不宜追高。',
     isTW: true
@@ -1211,14 +1209,16 @@ function updateWave(code, isTW) {
 function renderUnrealized() {
   const grid = document.getElementById('unrealizedGrid');
   if (!grid) return;
-  const twPnl = [...holdTW, ...waveTW].reduce((s,t) => {
-    if (!t.price || !t.cost || !t.shares) return s;
-    return s + (t.price - t.cost) * t.shares;
+  const calcPnl = (stocks) => stocks.reduce((s,t) => {
+    if (t.isFund) return s + ((t.totalValue||0) - (t.totalCost||0));
+    if (!t.price || !t.cost) return s;
+    const shares = t.shares || 0;
+    if (shares === 0) return s;
+    return s + (t.price - t.cost) * shares;
   }, 0);
-  const usPnl = [...holdUS, ...waveUS].reduce((s,t) => {
-    if (!t.price || !t.cost || !t.shares) return s;
-    return s + (t.price - t.cost) * t.shares;
-  }, 0);
+
+  const twPnl   = calcPnl([...holdTW, ...waveTW]);
+  const usPnl   = calcPnl([...holdUS, ...waveUS]);
   const fundPnl = holdFunds.reduce((s,f) => s + ((f.totalValue||0) - (f.totalCost||0)), 0);
 
   const items = [
