@@ -863,6 +863,13 @@ const holdUS = [
 
 const holdTW = [
   {
+    code:'009816', name:'凱基台灣TOP50',
+    cost: 12.88, shares: 3225, price: 14.19,
+    strongBuy: 12, buy: 13, fair: 14.5, rich: 16,
+    note:'不配息ETF，省稅，長期取代0050加碼部位。跌至$13以下為理想加碼點。',
+    isTW: true
+  },
+  {
     code:'0050', name:'元大台灣50',
     cost: 50.1,
     price: 97.3,
@@ -911,7 +918,6 @@ const waveUS = [
   { code:'TSM',  name:'TSMC ADR',  cost:340.34, price:407.15, ret:19.63, tp1:440, tp2:480, sl:370, signal:'warn', shares:0.29412,  note:'與台積電重疊，留意總曝險' },
 ];
 const waveTW = [
-  { code:'009816', name:'凱基台灣T',   cost:12.88,  price:14.19,  ret:9.95,   tp1:15.5, tp2:16.5, sl:13.5, signal:'hold', shares:3225, note:'ETF，震盪持有' },
   { code:'00981A', name:'主動統一台股', cost:26.56,  price:29.95,  ret:12.60,  tp1:32,   tp2:35,   sl:27,   signal:'hold', shares:1185, note:'主動ETF，關注淨值' },
   { code:'2454',   name:'聯發科',       cost:3205,   price:3860,   ret:20.02,  tp1:4200, tp2:4500, sl:3500, signal:'sell', shares:2,    note:'AI族群動能強' },
   { code:'3135',   name:'凌航',         cost:197,    price:211.5,  ret:6.97,   tp1:230,  tp2:250,  sl:195,  signal:'hold', shares:50,   note:'接近成本，停損設緊' },
@@ -1396,6 +1402,7 @@ const yahooSymbolMap = {
   'TSM'   : 'TSM',
   // 台股
   '0050'  : '0050.TW',
+  '009816': '009816.TW',
   '2330'  : '2330.TW',
   '009816': '009816.TW',
   '00981A': '00981A.TWO',
