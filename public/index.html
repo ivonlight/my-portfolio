@@ -720,8 +720,8 @@ main { padding:2rem 2.5rem; max-width:1440px; margin:0 auto; }
   <div class="sec-hd" style="margin-top:2rem"><h2>基金</h2><div class="ln"></div><div class="bdg">TWD</div></div>
   <table class="stk-table">
     <thead><tr>
-      <th>標的</th><th>均價 / 現價</th><th style="text-align:right">輸入新價格</th>
-      <th>距均價</th><th>加碼區間</th><th>訊號</th><th>說明</th>
+      <th>標的</th><th>本金</th><th style="text-align:right">輸入最新現值</th>
+      <th>損益</th><th>淨值日</th><th>報酬率</th><th>說明</th>
     </tr></thead>
     <tbody id="holdFundTable"></tbody>
   </table>
@@ -890,22 +890,22 @@ const holdTW = [
 const holdFunds = [
   {
     code:'安聯台灣科技', name:'安聯台灣科技基金',
-    cost: null, // no cost shown
-    price: null, // nav-based, shown as TWD 79,970 total
+    cost: null, price: null, units: null,
+    totalCost: 74000,  // 本金 TWD（從App截圖 $87,000 * 安聯佔比）
+    totalValue: 79970, // 現值 TWD
     ret: 8.07,
     navDate: '2026/05/21',
-    strongBuy: null, buy: null, fair: null, rich: null,
-    note:'主動型科技基金，+8.07%。定期定額繼續持有，不需特別擇時。',
+    note:'主動型科技基金，單筆投入。定期檢視，不需特別擇時。',
     isTW: true, isFund: true
   },
   {
     code:'路博邁台日雙星', name:'路博邁台日雙星T',
-    cost: null,
-    price: null,
+    cost: null, price: null, units: null,
+    totalCost: 13000,
+    totalValue: 12902,
     ret: -0.75,
     navDate: '2026/05/20',
-    strongBuy: null, buy: null, fair: null, rich: null,
-    note:'目前小虧−0.75%。台日主題，短期震盪正常。持續定期定額，不建議停扣。',
+    note:'台日主題，目前小虧−0.75%，短期震盪正常，繼續持有。',
     isTW: true, isFund: true
   }
 ];
@@ -983,17 +983,32 @@ function renderHoldTable(stocks, tbodyId) {
     tr.style.animationDelay = `${.05*i+.05}s`;
 
     if (s.isFund) {
-      const sig = getBuySignal(null, s);
+      const pnl = (s.totalValue || 0) - (s.totalCost || 0);
+      const ret = s.totalCost ? (pnl / s.totalCost * 100) : (s.ret || 0);
+      const retDisplay = ret >= 0
+        ? `<span class="pos">+${ret.toFixed(2)}%</span>`
+        : `<span class="neg">${ret.toFixed(2)}%</span>`;
+      const pnlDisplay = pnl >= 0
+        ? `<span class="pos">+NT$${Math.round(pnl).toLocaleString('zh-TW')}</span>`
+        : `<span class="neg">-NT$${Math.abs(Math.round(pnl)).toLocaleString('zh-TW')}</span>`;
+
       tr.innerHTML = `
         <td><span class="sname">${s.name}</span><span class="scode">${s.code}</span></td>
         <td style="font-family:var(--mono);font-size:.72rem">
-          <span style="color:var(--muted)">報酬率</span><br>
-          ${pctColor(s.ret)}
+          <div style="color:var(--muted);font-size:.58rem;margin-bottom:.15rem">本金</div>
+          NT$${(s.totalCost||0).toLocaleString('zh-TW')}
         </td>
-        <td style="text-align:right;color:var(--muted);font-family:var(--mono);font-size:.68rem">淨值日 ${s.navDate}</td>
-        <td>—</td>
-        <td><span style="font-family:var(--mono);font-size:.65rem;color:var(--muted)">定期定額</span></td>
-        <td><span class="sig ${sig.cls}">${sig.lbl}</span></td>
+        <td style="text-align:right">
+          <div style="font-family:var(--mono);font-size:.58rem;color:var(--muted);margin-bottom:.2rem">輸入最新現值 (TWD)</div>
+          <input class="price-input" type="number" id="finp-${s.code}"
+            value="${s.totalValue||''}" step="1"
+            onchange="updateFund('${s.code}')"
+            onkeydown="if(event.key==='Enter')updateFund('${s.code}')"
+            style="width:110px">
+        </td>
+        <td id="fpnl-${s.code}" style="font-family:var(--mono)">${pnlDisplay}</td>
+        <td><span style="font-family:var(--mono);font-size:.65rem;color:var(--muted)">淨值日 ${s.navDate}</span></td>
+        <td id="fret-${s.code}">${retDisplay}</td>
         <td><span class="note-txt">${s.note}</span></td>`;
       tbody.appendChild(tr);
       return;
@@ -1030,6 +1045,27 @@ function renderHoldTable(stocks, tbodyId) {
 
 // Update hold signal on price input
 const allHoldStocks = [...holdUS, ...holdTW, ...holdFunds];
+function updateFund(code) {
+  const s = holdFunds.find(x => x.code === code);
+  if (!s) return;
+  const inp = document.getElementById('finp-' + code);
+  const val = parseFloat(inp.value);
+  if (isNaN(val) || val <= 0) return;
+  s.totalValue = val;
+  const pnl = val - (s.totalCost || 0);
+  const ret = s.totalCost ? (pnl / s.totalCost * 100) : 0;
+  const pnlEl = document.getElementById('fpnl-' + code);
+  const retEl = document.getElementById('fret-' + code);
+  if (pnlEl) pnlEl.innerHTML = pnl >= 0
+    ? `<span class="pos">+NT$${Math.round(pnl).toLocaleString('zh-TW')}</span>`
+    : `<span class="neg">-NT$${Math.abs(Math.round(pnl)).toLocaleString('zh-TW')}</span>`;
+  if (retEl) retEl.innerHTML = ret >= 0
+    ? `<span class="pos">+${ret.toFixed(2)}%</span>`
+    : `<span class="neg">${ret.toFixed(2)}%</span>`;
+  inp.classList.add('updated');
+  setTimeout(() => inp.classList.remove('updated'), 600);
+}
+
 function updateHold(code) {
   const s = allHoldStocks.find(x => x.code === code);
   if (!s || s.isFund) return;
