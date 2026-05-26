@@ -892,11 +892,11 @@ const waveUS = [
   { code:'TSM',  name:'TSMC ADR',  cost:340.34, price:407.15, ret:19.63, tp1:440, tp2:480, sl:370, signal:'warn', shares:0.29412,  note:'與台積電重疊，留意總曝險' },
 ];
 const waveTW = [
-  { code:'00981A', name:'主動統一台股增長', cost:26.56,  price:29.95,  ret:12.60,  tp1:32,   tp2:35,   sl:27,   signal:'hold', shares:1185, note:'主動ETF，關注淨值' },
+  { code:'00981A', name:'主動統一台股增長', cost:26.77,  price:31.31,  ret:16.76,  tp1:32,   tp2:35,   sl:27,   signal:'hold', shares:685,  note:'主動ETF，關注淨值' },
   { code:'2454',   name:'聯發科',       cost:3205,   price:3860,   ret:20.02,  tp1:4200, tp2:4500, sl:3500, signal:'sell', shares:0,    note:'AI族群動能強' },
-  { code:'3135',   name:'凌航',         cost:197,    price:211.5,  ret:6.97,   tp1:230,  tp2:250,  sl:195,  signal:'hold', shares:50,   note:'接近成本，停損設緊' },
-  { code:'5292',   name:'華懋',         cost:239.84, price:219.5,  ret:-8.82,  tp1:240,  tp2:null, sl:210,  signal:'stop', shares:44,   note:'⚠️ 唯一虧損' },
-  { code:'8033',   name:'雷虎',         cost:132,    price:138,    ret:4.18,   tp1:150,  tp2:165,  sl:128,  signal:'hold', shares:50,   note:'小倉位緊盯' },
+  { code:'3135',   name:'凌航',         cost:197,    price:219.5,  ret:11.02,   tp1:230,  tp2:250,  sl:195,  signal:'hold', shares:50,   note:'接近成本，停損設緊' },
+  { code:'5292',   name:'華懋',         cost:239.84, price:224.5,  ret:-6.74,  tp1:240,  tp2:null, sl:210,  signal:'stop', shares:44,   note:'⚠️ 唯一虧損' },
+  { code:'8033',   name:'雷虎',         cost:132,    price:138,    ret:4.18,   tp1:150,  tp2:165,  sl:128,  signal:'hold', shares:0,    note:'小倉位緊盯' },
   { code:'00988A', name:'主動統一全球創新', cost:18.9, price:21.84, ret:14.21,  tp1:25,   tp2:null, sl:17,   signal:'hold', shares:10,   note:'小倉位' },
 ];
 
@@ -1253,8 +1253,7 @@ function renderSummaryStrip() {
   const activeTW = [...holdTW, ...waveTW].filter(t => (t.shares||0) > 0);
   const twVal  = activeTW.reduce((s,t) => s + (t.price||0)*(t.shares||0), 0);
   const twCost = activeTW.reduce((s,t) => s + (t.cost||0)*(t.shares||0), 0);
-  console.log('[DEBUG] activeTW:', activeTW.map(t => t.name+'×'+t.shares+'@'+t.price));
-  console.log('[DEBUG] twVal:', Math.round(twVal));
+
   const twPnl  = twVal - twCost;
   const twRet  = twCost ? twPnl/twCost*100 : 0;
 
@@ -1802,41 +1801,44 @@ function izParseFile(file, market) {
 function confirmImport() {
   // Update the private dashboard arrays
   if (izParsed.tw) {
-    // For each stock in CSV, update existing or skip if not in our watchlist
-    izParsed.tw.forEach(parsed => {
-      // Match: exact code, exact name, or partial name (CSV might have longer name)
-      const existing = [...waveTW, ...holdTW].find(s =>
-        s.code === parsed.code ||
-        s.name === parsed.name ||
-        s.name === parsed.code ||
-        parsed.name.includes(s.name) ||
-        s.name.includes(parsed.name)
-      );
-      if (existing) {
-        existing.price  = parsed.price;
-        existing.shares = parsed.shares;
-        existing.cost   = parsed.cost;
-        existing.ret    = parsed.cost
-          ? Math.round(((parsed.price - parsed.cost) / parsed.cost) * 10000) / 100
-          : existing.ret;
+    const nameMatch = (a, b) => a === b || a.includes(b) || b.includes(a);
+
+    // Step 1: Update holdTW (存股) from CSV
+    holdTW.forEach(s => {
+      if (s.isFund) return;
+      const p = izParsed.tw.find(p => nameMatch(p.name, s.name) || p.code === s.code);
+      if (p) {
+        s.price = p.price; s.shares = p.shares; s.cost = p.cost;
+        s.ret = p.cost ? Math.round(((p.price-p.cost)/p.cost)*10000)/100 : s.ret;
+      } else {
+        s.shares = 0; s.ret = 0;
       }
     });
 
-    // Zero out any stock NOT in the CSV (fully sold)
-    [...waveTW, ...holdTW].forEach(s => {
-      if (s.isFund) return;
-      const inCSV = izParsed.tw.some(p =>
-        p.code === s.code ||
-        p.name === s.name ||
-        p.name === s.code ||
-        p.name.includes(s.name) ||
-        s.name.includes(p.name)
-      );
-      if (!inCSV) {
-        s.shares = 0;
-        s.ret    = 0;
-      }
+    // Step 2: Rebuild waveTW completely from CSV
+    // Wave stocks = CSV rows that are NOT in holdTW
+    const waveFromCSV = izParsed.tw.filter(p =>
+      !holdTW.some(s => nameMatch(p.name, s.name) || p.code === s.code)
+    );
+    const newWave = waveFromCSV.map(p => {
+      const ex = waveTW.find(s => nameMatch(p.name, s.name) || p.code === s.code);
+      return {
+        code:   ex?.code   || p.name,
+        name:   p.name,
+        cost:   p.cost,
+        price:  p.price,
+        shares: p.shares,
+        ret:    p.cost ? Math.round(((p.price-p.cost)/p.cost)*10000)/100 : 0,
+        tp1:    ex?.tp1    || null,
+        tp2:    ex?.tp2    || null,
+        sl:     ex?.sl     || null,
+        signal: ex?.signal || 'hold',
+        note:   ex?.note   || '',
+        isTW:   true,
+      };
     });
+    waveTW.length = 0;
+    newWave.forEach(s => waveTW.push(s));
   }
   if (izParsed.us) {
     izParsed.us.forEach(parsed => {
