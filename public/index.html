@@ -1,4 +1,10 @@
-<!DOCTYPE html>
+class="donut-wrap">
+        <svg width="110" height="110" viewBox="0 0 110 110" id="donutSvg">
+          <circle cx="55" cy="55" r="40" fill="none" stroke="#1c1c2e" stroke-width="15"/>
+          <text x="55" y="51" text-anchor="middle" fill="#e4e4f0" font-family="DM Mono" font-size="10" font-weight="500">ALL</text>
+          <text x="55" y="63" text-anchor="middle" fill="#52527a" font-family="DM Mono" font-size="7.5">ASSETS</text>
+        </svg>
+        <div class="legend-list" id="donutLegend"></div><!DOCTYPE html>
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -645,14 +651,14 @@ main { padding:2rem 2.5rem; max-width:1440px; margin:0 auto; }
       <div class="donut-wrap">
         <svg width="110" height="110" viewBox="0 0 110 110">
           <circle cx="55" cy="55" r="40" fill="none" stroke="#1c1c2e" stroke-width="15"/>
-          <circle cx="55" cy="55" r="40" fill="none" stroke="#7c6af7" stroke-width="15"
-            stroke-dasharray="135.9 115.2" stroke-dashoffset="0" transform="rotate(-90 55 55)"/>
-          <circle cx="55" cy="55" r="40" fill="none" stroke="#3ecf8e" stroke-width="15"
-            stroke-dasharray="64.1 187" stroke-dashoffset="-135.9" transform="rotate(-90 55 55)"/>
           <circle cx="55" cy="55" r="40" fill="none" stroke="#f0c05c" stroke-width="15"
-            stroke-dasharray="22.1 229" stroke-dashoffset="-200" transform="rotate(-90 55 55)"/>
+            stroke-dasharray="24.2 227.1" stroke-dashoffset="0" transform="rotate(-90 55 55)"/>
+          <circle cx="55" cy="55" r="40" fill="none" stroke="#7c6af7" stroke-width="15"
+            stroke-dasharray="152.1 99.2" stroke-dashoffset="-24.2" transform="rotate(-90 55 55)"/>
+          <circle cx="55" cy="55" r="40" fill="none" stroke="#3ecf8e" stroke-width="15"
+            stroke-dasharray="72.4 178.9" stroke-dashoffset="-176.29999999999998" transform="rotate(-90 55 55)"/>
           <circle cx="55" cy="55" r="40" fill="none" stroke="#f05c5c" stroke-width="15"
-            stroke-dasharray="4.7 246.4" stroke-dashoffset="-222.1" transform="rotate(-90 55 55)"/>
+            stroke-dasharray="2.5 248.8" stroke-dashoffset="-248.7" transform="rotate(-90 55 55)"/>
           <text x="55" y="51" text-anchor="middle" fill="#e4e4f0" font-family="DM Mono" font-size="10" font-weight="500">ALL</text>
           <text x="55" y="63" text-anchor="middle" fill="#52527a" font-family="DM Mono" font-size="7.5">ASSETS</text>
         </svg>
@@ -661,7 +667,6 @@ main { padding:2rem 2.5rem; max-width:1440px; margin:0 auto; }
           <div class="leg-item"><span class="leg-name"><span class="leg-dot" style="background:#7c6af7"></span>台股</span><span class="leg-pct">54.0%</span></div>
           <div class="leg-item"><span class="leg-name"><span class="leg-dot" style="background:#3ecf8e"></span>美股</span><span class="leg-pct">25.7%</span></div>
           <div class="leg-item"><span class="leg-name"><span class="leg-dot" style="background:#f05c5c"></span>智能</span><span class="leg-pct">0.9%</span></div>
-          <div class="leg-item"><span class="leg-name"><span class="leg-dot" style="background:#333"></span>現金</span><span class="leg-pct">~10.8%</span></div>
         </div>
       </div>
     </div>
@@ -1240,6 +1245,60 @@ function renderUnrealized() {
   }).join('');
 }
 
+function renderDonut() {
+  // Calculate total values
+  const twVal   = [...holdTW, ...waveTW].reduce((s,t) => {
+    if (!t.price || !t.shares) return s;
+    return s + t.price * t.shares;
+  }, 0);
+  const usVal   = [...holdUS, ...waveUS].reduce((s,t) => {
+    if (!t.price || !t.shares) return s;
+    return s + t.price * t.shares * 31.5; // USD to TWD
+  }, 0);
+  const fundVal = holdFunds.reduce((s,f) => s + (f.totalValue || f.totalCost || 0), 0);
+  const smartVal = 9239; // 智能投資固定
+  const total = twVal + usVal + fundVal + smartVal;
+  if (total === 0) return;
+
+  const slices = [
+    { label:'基金', val:fundVal,  color:'#f0c05c' },
+    { label:'台股', val:twVal,    color:'#7c6af7' },
+    { label:'美股', val:usVal,    color:'#3ecf8e' },
+    { label:'智能', val:smartVal, color:'#f05c5c' },
+  ].filter(s => s.val > 0);
+
+  const r = 40, cx = 55, cy = 55, circ = 2 * Math.PI * r;
+  const svg = document.getElementById('donutSvg');
+  // Remove old slices (keep background circle and text)
+  Array.from(svg.querySelectorAll('circle:not(:first-child)')).forEach(c => c.remove());
+
+  let offset = 0;
+  slices.forEach(s => {
+    const pct = s.val / total;
+    const dash = pct * circ;
+    const el = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    el.setAttribute('cx', cx); el.setAttribute('cy', cy); el.setAttribute('r', r);
+    el.setAttribute('fill', 'none'); el.setAttribute('stroke', s.color);
+    el.setAttribute('stroke-width', '15');
+    el.setAttribute('stroke-dasharray', `${dash} ${circ - dash}`);
+    el.setAttribute('stroke-dashoffset', `${-offset}`);
+    el.setAttribute('transform', `rotate(-90 ${cx} ${cy})`);
+    // Insert before text elements
+    svg.insertBefore(el, svg.querySelector('text'));
+    offset += dash;
+  });
+
+  // Update legend
+  const legend = document.getElementById('donutLegend');
+  if (legend) {
+    legend.innerHTML = slices.map(s => `
+      <div class="leg-item">
+        <span class="leg-name"><span class="leg-dot" style="background:${s.color}"></span>${s.label}</span>
+        <span class="leg-pct">${(s.val/total*100).toFixed(1)}%</span>
+      </div>`).join('');
+  }
+}
+
 function renderReturnChart() {
   const all = [
     // 基金
@@ -1563,6 +1622,7 @@ async function fetchLivePrices() {
     renderHoldTable(holdFunds, 'holdFundTable');
     renderWaveTable(waveUS, 'waveUsTable', false);
     renderWaveTable(waveTW, 'waveTwTable', true);
+    renderDonut();
     renderReturnChart();
     renderUnrealized();
     _fetching = false;
