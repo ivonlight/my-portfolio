@@ -1253,6 +1253,8 @@ function renderSummaryStrip() {
   const activeTW = [...holdTW, ...waveTW].filter(t => (t.shares||0) > 0);
   const twVal  = activeTW.reduce((s,t) => s + (t.price||0)*(t.shares||0), 0);
   const twCost = activeTW.reduce((s,t) => s + (t.cost||0)*(t.shares||0), 0);
+  console.log('[DEBUG] activeTW:', activeTW.map(t => t.name+'×'+t.shares+'@'+t.price));
+  console.log('[DEBUG] twVal:', Math.round(twVal));
   const twPnl  = twVal - twCost;
   const twRet  = twCost ? twPnl/twCost*100 : 0;
 
