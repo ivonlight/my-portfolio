@@ -1214,8 +1214,8 @@ function renderUnrealized() {
     return s + (t.price - t.cost) * shares;
   }, 0);
 
-  const twPnl   = calcPnl([...holdTW, ...waveTW]);
-  const usPnl   = calcPnl([...holdUS, ...waveUS]);
+  const twPnl   = calcPnl([...holdTW, ...waveTW].filter(t => (t.shares||0) > 0));
+  const usPnl   = calcPnl([...holdUS, ...waveUS].filter(t => (t.shares||0) > 0));
   const fundPnl = holdFunds.reduce((s,f) => s + ((f.totalValue||0) - (f.totalCost||0)), 0);
 
   const items = [
@@ -1248,15 +1248,17 @@ function renderSummaryStrip() {
   const SMART_VALUE = 0;
   const SMART_COST  = 0;
 
-  // Taiwan stocks
-  const twVal  = [...holdTW, ...waveTW].reduce((s,t) => s + (t.price||0)*(t.shares||0), 0);
-  const twCost = [...holdTW, ...waveTW].reduce((s,t) => s + (t.cost||0)*(t.shares||0), 0);
+  // Taiwan stocks (exclude zero-share / sold-out positions)
+  const activeTW = [...holdTW, ...waveTW].filter(t => (t.shares||0) > 0);
+  const twVal  = activeTW.reduce((s,t) => s + (t.price||0)*(t.shares||0), 0);
+  const twCost = activeTW.reduce((s,t) => s + (t.cost||0)*(t.shares||0), 0);
   const twPnl  = twVal - twCost;
   const twRet  = twCost ? twPnl/twCost*100 : 0;
 
-  // US stocks
-  const usVal  = [...holdUS, ...waveUS].reduce((s,t) => s + (t.price||0)*(t.shares||0), 0);
-  const usCost = [...holdUS, ...waveUS].reduce((s,t) => s + (t.cost||0)*(t.shares||0), 0);
+  // US stocks (exclude zero-share positions)
+  const activeUS = [...holdUS, ...waveUS].filter(t => (t.shares||0) > 0);
+  const usVal  = activeUS.reduce((s,t) => s + (t.price||0)*(t.shares||0), 0);
+  const usCost = activeUS.reduce((s,t) => s + (t.cost||0)*(t.shares||0), 0);
   const usPnl  = usVal - usCost;
   const usRet  = usCost ? usPnl/usCost*100 : 0;
 
@@ -1797,30 +1799,33 @@ function izParseFile(file, market) {
 function confirmImport() {
   // Update the private dashboard arrays
   if (izParsed.tw) {
-    // Build a set of names present in the new CSV
-    const csvNames = new Set(izParsed.tw.map(p => p.name || p.code));
-
-    [...waveTW, ...holdTW].forEach(existing => {
-      // Find matching parsed row
-      const parsed = izParsed.tw.find(p =>
-        p.code === existing.code ||
-        p.name === existing.name ||
-        p.name === existing.code
+    // For each stock in CSV, update existing or skip if not in our watchlist
+    izParsed.tw.forEach(parsed => {
+      const existing = [...waveTW, ...holdTW].find(s =>
+        s.code === parsed.code ||
+        s.name === parsed.name ||
+        s.name === parsed.code
       );
-
-      if (parsed) {
-        // Update with new data
+      if (existing) {
         existing.price  = parsed.price;
         existing.shares = parsed.shares;
         existing.cost   = parsed.cost;
         existing.ret    = parsed.cost
           ? Math.round(((parsed.price - parsed.cost) / parsed.cost) * 10000) / 100
           : existing.ret;
-      } else if (!existing.isFund && existing.shares > 0) {
-        // Not in CSV = fully sold out, zero the shares
-        existing.shares = 0;
-        existing.ret    = 0;
-        existing.signal = 'hold';
+      }
+    });
+
+    // Zero out any stock NOT in the CSV (fully sold)
+    const csvNames = new Set(izParsed.tw.map(p => p.name || p.code));
+    [...waveTW, ...holdTW].forEach(s => {
+      const inCSV = izParsed.tw.some(p =>
+        p.code === s.code || p.name === s.name || p.name === s.code
+      );
+      if (!inCSV && !s.isFund) {
+        s.shares = 0;
+        s.price  = s.price || 0;
+        s.ret    = 0;
       }
     });
   }
