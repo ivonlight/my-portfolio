@@ -1305,24 +1305,19 @@ function renderSummaryStrip() {
 }
 
 function renderDonut() {
-  // Calculate total values
-  const twVal   = [...holdTW, ...waveTW].reduce((s,t) => {
-    if (!t.price || !t.shares) return s;
-    return s + t.price * t.shares;
-  }, 0);
-  const usVal   = [...holdUS, ...waveUS].reduce((s,t) => {
-    if (!t.price || !t.shares) return s;
-    return s + t.price * t.shares * 31.5; // USD to TWD
-  }, 0);
+  // Calculate total values (all in TWD)
+  const fx = getUSDTWD();
+  const twVal   = [...holdTW, ...waveTW].filter(t=>(t.shares||0)>0).reduce((s,t) => s + (t.price||0)*(t.shares||0), 0);
+  const usValUSD= [...holdUS, ...waveUS].filter(t=>(t.shares||0)>0).reduce((s,t) => s + (t.price||0)*(t.shares||0), 0);
+  const usVal   = usValUSD * fx; // convert to TWD
   const fundVal = holdFunds.reduce((s,f) => s + (f.totalValue || f.totalCost || 0), 0);
   const total = twVal + usVal + fundVal;
   if (total === 0) return;
 
   const slices = [
-    { label:'基金', val:fundVal,  color:'#f0c05c' },
-    { label:'台股', val:twVal,    color:'#7c6af7' },
-    { label:'美股', val:usVal * getUSDTWD(),    color:'#3ecf8e' },
-
+    { label:'基金', val:fundVal, color:'#f0c05c' },
+    { label:'台股', val:twVal,   color:'#7c6af7' },
+    { label:'美股', val:usVal,   color:'#3ecf8e' },
   ].filter(s => s.val > 0);
 
   const r = 40, cx = 55, cy = 55, circ = 2 * Math.PI * r;
