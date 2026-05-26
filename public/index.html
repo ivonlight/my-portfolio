@@ -605,33 +605,7 @@ main { padding:2rem 2.5rem; max-width:1440px; margin:0 auto; }
 <!-- ══════════════ TAB: 總覽 ══════════════ -->
 <div class="tab-panel active" id="tab-overview">
 
-  <div class="summary-strip">
-    <div class="s-card" style="animation-delay:.05s">
-      <div class="s-label">投資總現值 TWD</div>
-      <div class="s-val">$967,324</div>
-      <div class="s-sub pos">+34.05% 美股以匯率換算</div>
-    </div>
-    <div class="s-card y" style="animation-delay:.1s">
-      <div class="s-label">基金損益 TWD</div>
-      <div class="s-val pos">+$5,872</div>
-      <div class="s-sub pos">+6.75%　現值 $92,872</div>
-    </div>
-    <div class="s-card g" style="animation-delay:.15s">
-      <div class="s-label">台股損益 TWD</div>
-      <div class="s-val pos">+$206,949</div>
-      <div class="s-sub pos">+54.54%　現值 $586,388</div>
-    </div>
-    <div class="s-card g" style="animation-delay:.2s">
-      <div class="s-label">美股損益 USD</div>
-      <div class="s-val pos">+$1,045</div>
-      <div class="s-sub pos">+13.41%　現值 $8,838</div>
-    </div>
-    <div class="s-card r" style="animation-delay:.25s">
-      <div class="s-label">智能投資 TWD</div>
-      <div class="s-val neg">−0.73%</div>
-      <div class="s-sub" style="color:var(--muted)">現值 $9,239</div>
-    </div>
-  </div>
+  <div class="summary-strip" id="summaryStrip"></div>
 
     <!-- 帳面損益彙總 -->
   <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.25rem 1.5rem;margin-bottom:1.5rem;animation:fadeUp .4s ease both">
@@ -1236,6 +1210,66 @@ function renderUnrealized() {
   }).join('');
 }
 
+function renderSummaryStrip() {
+  const strip = document.getElementById('summaryStrip');
+  if (!strip) return;
+
+  const USD_TWD = 31.5;
+  const SMART_VALUE = 0;
+  const SMART_COST  = 0;
+
+  // Taiwan stocks
+  const twVal  = [...holdTW, ...waveTW].reduce((s,t) => s + (t.price||0)*(t.shares||0), 0);
+  const twCost = [...holdTW, ...waveTW].reduce((s,t) => s + (t.cost||0)*(t.shares||0), 0);
+  const twPnl  = twVal - twCost;
+  const twRet  = twCost ? twPnl/twCost*100 : 0;
+
+  // US stocks
+  const usVal  = [...holdUS, ...waveUS].reduce((s,t) => s + (t.price||0)*(t.shares||0), 0);
+  const usCost = [...holdUS, ...waveUS].reduce((s,t) => s + (t.cost||0)*(t.shares||0), 0);
+  const usPnl  = usVal - usCost;
+  const usRet  = usCost ? usPnl/usCost*100 : 0;
+
+  // Funds
+  const fundVal  = holdFunds.reduce((s,f) => s + (f.totalValue || f.totalCost || 0), 0);
+  const fundCost = holdFunds.reduce((s,f) => s + (f.totalCost || 0), 0);
+  const fundPnl  = fundVal - fundCost;
+  const fundRet  = fundCost ? fundPnl/fundCost*100 : 0;
+
+  // Total TWD
+  const totalVal = twVal + fundVal + SMART_VALUE + usVal * USD_TWD;
+  const totalCost = twCost + fundCost + SMART_COST + usCost * USD_TWD;
+  const totalRet = totalCost ? (totalVal - totalCost)/totalCost*100 : 0;
+
+  const fmtTW = n => 'NT$' + Math.abs(Math.round(n)).toLocaleString('zh-TW');
+  const fmtUS = n => '$' + Math.abs(n).toFixed(0);
+  const pSign = n => n >= 0 ? '+' : '-';
+  const cls   = n => n >= 0 ? 'pos' : 'neg';
+
+  strip.innerHTML = `
+    <div class="s-card" style="animation-delay:.05s">
+      <div class="s-label">投資總現值 TWD</div>
+      <div class="s-val">${fmtTW(totalVal)}</div>
+      <div class="s-sub ${cls(totalRet)}">${pSign(totalRet)}${Math.abs(totalRet).toFixed(2)}% 美股以匯率換算</div>
+    </div>
+    <div class="s-card ${cls(fundPnl) === 'pos' ? 'y' : 'r'}" style="animation-delay:.1s">
+      <div class="s-label">基金損益 TWD</div>
+      <div class="s-val ${cls(fundPnl)}">${pSign(fundPnl)}${fmtTW(fundPnl)}</div>
+      <div class="s-sub ${cls(fundRet)}">${pSign(fundRet)}${Math.abs(fundRet).toFixed(2)}%　現值 ${fmtTW(fundVal)}</div>
+    </div>
+    <div class="s-card ${cls(twPnl) === 'pos' ? 'g' : 'r'}" style="animation-delay:.15s">
+      <div class="s-label">台股損益 TWD</div>
+      <div class="s-val ${cls(twPnl)}">${pSign(twPnl)}${fmtTW(twPnl)}</div>
+      <div class="s-sub ${cls(twRet)}">${pSign(twRet)}${Math.abs(twRet).toFixed(2)}%　現值 ${fmtTW(twVal)}</div>
+    </div>
+    <div class="s-card ${cls(usPnl) === 'pos' ? 'g' : 'r'}" style="animation-delay:.2s">
+      <div class="s-label">美股損益 USD</div>
+      <div class="s-val ${cls(usPnl)}">${pSign(usPnl)}${fmtUS(usPnl)}</div>
+      <div class="s-sub ${cls(usRet)}">${pSign(usRet)}${Math.abs(usRet).toFixed(2)}%　現值 ${fmtUS(usVal)}</div>
+    </div>
+`;
+}
+
 function renderDonut() {
   // Calculate total values
   const twVal   = [...holdTW, ...waveTW].reduce((s,t) => {
@@ -1247,15 +1281,14 @@ function renderDonut() {
     return s + t.price * t.shares * 31.5; // USD to TWD
   }, 0);
   const fundVal = holdFunds.reduce((s,f) => s + (f.totalValue || f.totalCost || 0), 0);
-  const smartVal = 9239; // 智能投資固定
-  const total = twVal + usVal + fundVal + smartVal;
+  const total = twVal + usVal + fundVal;
   if (total === 0) return;
 
   const slices = [
     { label:'基金', val:fundVal,  color:'#f0c05c' },
     { label:'台股', val:twVal,    color:'#7c6af7' },
     { label:'美股', val:usVal,    color:'#3ecf8e' },
-    { label:'智能', val:smartVal, color:'#f05c5c' },
+
   ].filter(s => s.val > 0);
 
   const r = 40, cx = 55, cy = 55, circ = 2 * Math.PI * r;
@@ -1522,9 +1555,6 @@ function runAnalysis(mode) {
         `持股 10.87 股，均價 $174.9。若 NVDA 跌破 $195 建議減倉至少一半，保留低成本部位長抱。`,
         'var(--accent)');
 
-      html += fmtSignal('📎','智能投資 −0.73% — 觀察中',
-        '金額 $9,239，虧損金額小。持續觀察，若跌超 −5% 再考慮停損。',
-        'var(--muted)');
     }
 
     output.innerHTML = html;
@@ -1613,6 +1643,7 @@ async function fetchLivePrices() {
     renderHoldTable(holdFunds, 'holdFundTable');
     renderWaveTable(waveUS, 'waveUsTable', false);
     renderWaveTable(waveTW, 'waveTwTable', true);
+    renderSummaryStrip();
     renderDonut();
     renderReturnChart();
     renderUnrealized();
