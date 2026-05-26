@@ -607,7 +607,31 @@ main { padding:2rem 2.5rem; max-width:1440px; margin:0 auto; }
 
   <div class="summary-strip" id="summaryStrip"></div>
 
-    <!-- 帳面損益彙總 -->
+    <!-- 現金配置 -->
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.25rem 1.5rem;margin-bottom:1.5rem;animation:fadeUp .4s ease both">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem">
+      <div>
+        <div style="font-family:var(--mono);font-size:.58rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:.35rem">可用現金</div>
+        <div style="display:flex;align-items:center;gap:.6rem">
+          <span style="font-family:var(--mono);font-size:.8rem;color:var(--muted)">NT$</span>
+          <input type="number" id="cashInput" placeholder="0" step="1000"
+            style="font-family:var(--mono);font-size:1.1rem;font-weight:600;background:transparent;border:none;border-bottom:1px solid var(--border);color:var(--text);outline:none;width:140px;padding:.2rem .3rem;"
+            oninput="updateCashAdvice()"
+            onkeydown="if(event.key==='Enter')updateCashAdvice()">
+          <span style="font-family:var(--mono);font-size:.7rem;color:var(--muted)">TWD</span>
+        </div>
+      </div>
+      <div id="cashAdviceSummary" style="font-family:var(--mono);font-size:.68rem;color:var(--muted)">輸入可用現金，獲得配置建議</div>
+    </div>
+    <div id="cashAdviceDetail" style="margin-top:1rem;display:none">
+      <div style="height:1px;background:var(--border);margin-bottom:1rem"></div>
+      <div style="font-family:var(--mono);font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:.75rem">建議配置</div>
+      <div id="cashAdviceGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem;margin-bottom:1rem"></div>
+      <div id="cashAdviceNote" style="font-family:var(--mono);font-size:.65rem;color:var(--muted);line-height:1.7;padding:.75rem;background:var(--surface2);border-radius:8px;border-left:3px solid var(--accent)"></div>
+    </div>
+  </div>
+
+  <!-- 帳面損益彙總 -->
   <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.25rem 1.5rem;margin-bottom:1.5rem;animation:fadeUp .4s ease both">
     <div style="font-family:var(--mono);font-size:.58rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:1rem">預估帳面損益</div>
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem" id="unrealizedGrid"></div>
@@ -1237,6 +1261,174 @@ function renderUnrealized() {
   }).join('');
 }
 
+function updateCashAdvice() {
+  const cash = parseFloat(document.getElementById('cashInput').value) || 0;
+  const detail = document.getElementById('cashAdviceDetail');
+  const summary = document.getElementById('cashAdviceSummary');
+  try { localStorage.setItem('cash_input', cash); } catch(e) {}
+
+  if (cash <= 0) {
+    detail.style.display = 'none';
+    summary.textContent = '輸入可用現金，獲得配置建議';
+    return;
+  }
+  detail.style.display = 'block';
+
+  const fx = getUSDTWD() || 31.5;
+  const fmtTW = n => 'NT$' + Math.abs(Math.round(n)).toLocaleString('zh-TW');
+
+  // ── 計算目前各類別現值 ──
+  const twVal   = [...holdTW, ...waveTW].filter(t=>(t.shares||0)>0).reduce((s,t)=>s+(t.price||0)*(t.shares||0),0);
+  const usValUSD= [...holdUS, ...waveUS].filter(t=>(t.shares||0)>0).reduce((s,t)=>s+(t.price||0)*(t.shares||0),0);
+  const usVal   = usValUSD * fx;
+  const fundVal = holdFunds.reduce((s,f)=>s+(f.totalValue||f.totalCost||0),0);
+  const total   = twVal + usVal + fundVal;
+  const twPct   = total ? twVal/total   : 0;
+  const usPct   = total ? usVal/total   : 0;
+  const fundPct = total ? fundVal/total : 0;
+
+  // ── 積極型目標配置 ──
+  const TARGET = { tw:0.40, us:0.45, fund:0.15 };
+
+  // ── 第一層：找到有買進訊號的標的 ──
+  const buySignals = [];
+
+  // TW stocks with buy signal or low 52-week position
+  [...holdTW, ...waveTW].filter(t=>(t.shares||0)>0).forEach(s => {
+    const hasBuyPrice = s.buy && s.price && s.price <= s.buy;
+    const lowPos = s.w52Position != null && s.w52Position <= 30;
+    const highPos = s.w52Position != null && s.w52Position >= 75;
+    if (hasBuyPrice || lowPos) {
+      buySignals.push({
+        name: s.name, market: 'tw',
+        reason: hasBuyPrice ? `現價低於買進區間（買進價 NT$${s.buy}）` : `52週低位 ${s.w52Position}%，具安全邊際`,
+        priority: (hasBuyPrice ? 2 : 0) + (lowPos ? 2 : 0),
+        w52: s.w52Position,
+        skip: highPos,
+      });
+    }
+  });
+
+  // US stocks
+  [...holdUS, ...waveUS].filter(t=>(t.shares||0)>0).forEach(s => {
+    const hasBuyPrice = s.buy && s.price && s.price <= s.buy;
+    const lowPos = s.w52Position != null && s.w52Position <= 30;
+    const highPos = s.w52Position != null && s.w52Position >= 75;
+    if (hasBuyPrice || lowPos) {
+      buySignals.push({
+        name: s.name, market: 'us',
+        reason: hasBuyPrice ? `現價低於買進區間（$${s.buy}）` : `52週低位 ${s.w52Position}%`,
+        priority: (hasBuyPrice ? 2 : 0) + (lowPos ? 2 : 0),
+        w52: s.w52Position,
+        skip: highPos,
+      });
+    }
+  });
+
+  buySignals.sort((a,b) => b.priority - a.priority);
+
+  // ── 第二層：計算配置缺口 ──
+  const newTotal = total + cash;
+  const twGap   = Math.max(0, newTotal * TARGET.tw   - twVal);
+  const usGap   = Math.max(0, newTotal * TARGET.us   - usVal);
+  const fundGap = Math.max(0, newTotal * TARGET.fund - fundVal);
+  const totalGap = twGap + usGap + fundGap;
+
+  let twAlloc, usAlloc, fundAlloc;
+  if (totalGap <= 0) {
+    twAlloc = cash * TARGET.tw; usAlloc = cash * TARGET.us; fundAlloc = cash * TARGET.fund;
+  } else {
+    const scale = Math.min(1, cash / totalGap);
+    twAlloc   = Math.round(twGap   * scale);
+    usAlloc   = Math.round(usGap   * scale);
+    fundAlloc = Math.round(fundGap * scale);
+    const rem = cash - twAlloc - usAlloc - fundAlloc;
+    // Extra cash goes to most underweight
+    const gaps = [{k:'tw',v:twGap-twAlloc/scale},{k:'us',v:usGap-usAlloc/scale},{k:'fund',v:fundGap-fundAlloc/scale}];
+    gaps.sort((a,b)=>b.v-a.v);
+    if (gaps[0].k==='tw') twAlloc+=rem;
+    else if (gaps[0].k==='us') usAlloc+=rem;
+    else fundAlloc+=rem;
+  }
+
+  // ── 第三層：集中度警告 ──
+  const concWarnings = [];
+  const allStocks = [...holdTW,...waveTW,...holdUS,...waveUS].filter(t=>(t.shares||0)>0);
+  allStocks.forEach(s => {
+    const val = s.market==='us'||!s.isTW ? (s.price||0)*(s.shares||0)*fx : (s.price||0)*(s.shares||0);
+    const pct = total ? val/total*100 : 0;
+    if (pct > 30) concWarnings.push(`${s.name} 佔總資產 ${pct.toFixed(0)}%，集中度偏高`);
+  });
+  // 台積電三重曝險
+  const has2330 = allStocks.some(s=>s.code==='2330');
+  const hasTSM  = allStocks.some(s=>s.code==='TSM');
+  const has0050 = allStocks.some(s=>s.code==='0050');
+  if (has2330 && hasTSM && has0050) {
+    concWarnings.push('台積電三重曝險：0050（內含35%台積電）+ 2330 + TSM ADR，請注意集中風險');
+  }
+
+  // ── 第四層：市場位置判斷 ──
+  // Use 0050 52-week position as proxy for TW market
+  const tw0050 = [...holdTW,...waveTW].find(s=>s.code==='0050');
+  const qqq    = [...holdUS,...waveUS].find(s=>s.code==='QQQ');
+  const twMarketHigh = tw0050?.w52Position != null && tw0050.w52Position >= 80;
+  const usMarketHigh = qqq?.w52Position    != null && qqq.w52Position    >= 80;
+  const marketNote = [];
+  if (twMarketHigh) marketNote.push(`台股接近52週高點（${tw0050.w52Position}%），建議分批進場，不要一次全投`);
+  if (usMarketHigh) marketNote.push(`美股接近52週高點（${qqq.w52Position}%），可保留較多現金等待回調`);
+  const cashReserve = (twMarketHigh || usMarketHigh) ? 0.15 : 0.10;
+  const deployable = Math.round(cash * (1 - cashReserve));
+  const reserve    = cash - deployable;
+
+  // ── 建立具體標的建議 ──
+  const twBuyTarget = buySignals.filter(s=>s.market==='tw')[0];
+  const usBuyTarget = buySignals.filter(s=>s.market==='us')[0];
+
+  const twSuggest  = twBuyTarget  ? `${twBuyTarget.name}（${twBuyTarget.reason}）`  : (twPct < TARGET.tw ? '0050 或 009816 分批加碼' : '目前台股無明顯買點，等待');
+  const usSuggest  = usBuyTarget  ? `${usBuyTarget.name}（${usBuyTarget.reason}）`  : (usPct < TARGET.us ? 'QQQ 或 BRK/B 分批加碼'   : '目前美股無明顯買點，等待');
+  const fundSuggest= fundAlloc > 5000 ? '安聯台灣科技基金（單筆補倉）' : '基金比例已足，暫不加碼';
+
+  // ── 渲染建議 ──
+  const grid = document.getElementById('cashAdviceGrid');
+  grid.innerHTML = [
+    { label:'🇹🇼 台股', alloc:twAlloc,   pct:Math.round(twAlloc/cash*100),   color:'var(--accent)', suggest:twSuggest,   curPct:(twPct*100).toFixed(0),   tgtPct:TARGET.tw*100 },
+    { label:'🇺🇸 美股', alloc:usAlloc,   pct:Math.round(usAlloc/cash*100),   color:'var(--green)',  suggest:usSuggest,   curPct:(usPct*100).toFixed(0),   tgtPct:TARGET.us*100 },
+    { label:'📈 基金',  alloc:fundAlloc, pct:Math.round(fundAlloc/cash*100), color:'var(--yellow)', suggest:fundSuggest, curPct:(fundPct*100).toFixed(0), tgtPct:TARGET.fund*100 },
+  ].map(item => `
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:1rem 1.1rem">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem">
+        <span style="font-family:var(--mono);font-size:.58rem;color:var(--muted)">${item.label}</span>
+        <span style="font-family:var(--mono);font-size:.56rem;color:var(--muted)">${item.curPct}% → 目標${item.tgtPct}%</span>
+      </div>
+      <div style="font-family:var(--mono);font-size:1rem;font-weight:600;color:${item.color};margin-bottom:.35rem">${fmtTW(item.alloc)}</div>
+      <div style="font-family:var(--mono);font-size:.6rem;color:var(--muted);line-height:1.5">${item.suggest}</div>
+    </div>`).join('');
+
+  // Note section
+  const noteLines = [];
+  if (reserve > 0) noteLines.push(`💰 建議保留 ${fmtTW(reserve)} 現金（${Math.round(cashReserve*100)}%）作為機會準備金，實際投入 ${fmtTW(deployable)}。`);
+  if (buySignals.length > 0) noteLines.push(`🎯 現有買進訊號：${buySignals.slice(0,2).map(s=>s.name).join('、')}，優先考慮。`);
+  if (concWarnings.length > 0) noteLines.push(...concWarnings.map(w => '⚠️ ' + w));
+  if (marketNote.length > 0) noteLines.push(...marketNote.map(n => '📊 ' + n));
+  if (noteLines.length === 0) noteLines.push('✅ 目前配置均衡，建議分 2-3 次分批投入，不要一次全倉。');
+
+  document.getElementById('cashAdviceNote').innerHTML = noteLines.map(l =>
+    `<div style="margin-bottom:.4rem">${l}</div>`).join('');
+
+  summary.textContent = `可投入 ${fmtTW(deployable)}，建議：台股 ${Math.round(twAlloc/cash*100)}% · 美股 ${Math.round(usAlloc/cash*100)}% · 基金 ${Math.round(fundAlloc/cash*100)}%`;
+}
+
+// Load saved cash on startup
+(function loadCash() {
+  try {
+    const saved = localStorage.getItem('cash_input');
+    if (saved) {
+      document.getElementById('cashInput').value = saved;
+      setTimeout(updateCashAdvice, 500);
+    }
+  } catch(e) {}
+})();
+
 function getUSDTWD() {
   return window.USD_TWD || 31.5; // fallback if not yet fetched
 }
@@ -1271,8 +1463,9 @@ function renderSummaryStrip() {
   const fundRet  = fundCost ? fundPnl/fundCost*100 : 0;
 
   // Total TWD
-  const totalVal = twVal + fundVal + SMART_VALUE + usVal * USD_TWD;
-  const totalCost = twCost + fundCost + SMART_COST + usCost * USD_TWD;
+  const cashTWD = parseFloat(document.getElementById('cashInput')?.value) || 0;
+  const totalVal = twVal + fundVal + SMART_VALUE + usVal * USD_TWD + cashTWD;
+  const totalCost = twCost + fundCost + SMART_COST + usCost * USD_TWD + cashTWD;
   const totalRet = totalCost ? (totalVal - totalCost)/totalCost*100 : 0;
 
   const fmtTW = n => 'NT$' + Math.abs(Math.round(n)).toLocaleString('zh-TW');
@@ -1314,10 +1507,12 @@ function renderDonut() {
   const total = twVal + usVal + fundVal;
   if (total === 0) return;
 
+  const cashTWD2 = parseFloat(document.getElementById('cashInput')?.value) || 0;
   const slices = [
-    { label:'基金', val:fundVal, color:'#f0c05c' },
-    { label:'台股', val:twVal,   color:'#7c6af7' },
-    { label:'美股', val:usVal,   color:'#3ecf8e' },
+    { label:'基金', val:fundVal,  color:'#f0c05c' },
+    { label:'台股', val:twVal,    color:'#7c6af7' },
+    { label:'美股', val:usVal,    color:'#3ecf8e' },
+    { label:'現金', val:cashTWD2, color:'#4a4a6a' },
   ].filter(s => s.val > 0);
 
   const r = 40, cx = 55, cy = 55, circ = 2 * Math.PI * r;
