@@ -1114,7 +1114,8 @@ function updateHold(code) {
 function renderWaveTable(stocks, tbodyId, isTW) {
   const tbody = document.getElementById(tbodyId);
   tbody.innerHTML = '';
-  stocks.forEach((s, i) => {
+  // Skip fully sold stocks (shares = 0)
+  stocks.filter(s => s.shares == null || s.shares > 0).forEach((s, i) => {
     const tr = document.createElement('tr');
     tr.style.animationDelay = `${.05*i+.05}s`;
     const sig = waveSigMap[s.signal];
@@ -1676,20 +1677,30 @@ function izParseFile(file, market) {
 function confirmImport() {
   // Update the private dashboard arrays
   if (izParsed.tw) {
-    izParsed.tw.forEach(parsed => {
-      // Match by code OR name (TW CSV uses name as first column)
-      const existing = [...waveTW, ...holdTW].find(s =>
-        s.code === parsed.code ||
-        s.name === parsed.name ||
-        s.name === parsed.code  // CSV first col might be name
+    // Build a set of names present in the new CSV
+    const csvNames = new Set(izParsed.tw.map(p => p.name || p.code));
+
+    [...waveTW, ...holdTW].forEach(existing => {
+      // Find matching parsed row
+      const parsed = izParsed.tw.find(p =>
+        p.code === existing.code ||
+        p.name === existing.name ||
+        p.name === existing.code
       );
-      if (existing) {
+
+      if (parsed) {
+        // Update with new data
         existing.price  = parsed.price;
         existing.shares = parsed.shares;
         existing.cost   = parsed.cost;
         existing.ret    = parsed.cost
           ? Math.round(((parsed.price - parsed.cost) / parsed.cost) * 10000) / 100
           : existing.ret;
+      } else if (!existing.isFund && existing.shares > 0) {
+        // Not in CSV = fully sold out, zero the shares
+        existing.shares = 0;
+        existing.ret    = 0;
+        existing.signal = 'hold';
       }
     });
   }
