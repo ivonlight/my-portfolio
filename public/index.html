@@ -1,10 +1,4 @@
-class="donut-wrap">
-        <svg width="110" height="110" viewBox="0 0 110 110" id="donutSvg">
-          <circle cx="55" cy="55" r="40" fill="none" stroke="#1c1c2e" stroke-width="15"/>
-          <text x="55" y="51" text-anchor="middle" fill="#e4e4f0" font-family="DM Mono" font-size="10" font-weight="500">ALL</text>
-          <text x="55" y="63" text-anchor="middle" fill="#52527a" font-family="DM Mono" font-size="7.5">ASSETS</text>
-        </svg>
-        <div class="legend-list" id="donutLegend"></div><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -649,7 +643,7 @@ main { padding:2rem 2.5rem; max-width:1440px; margin:0 auto; }
     <div class="chart-card" style="animation-delay:.1s">
       <h3>資產配置</h3>
       <div class="donut-wrap">
-        <svg width="110" height="110" viewBox="0 0 110 110">
+        <svg width="110" height="110" viewBox="0 0 110 110" id="donutSvg">
           <circle cx="55" cy="55" r="40" fill="none" stroke="#1c1c2e" stroke-width="15"/>
           <circle cx="55" cy="55" r="40" fill="none" stroke="#f0c05c" stroke-width="15"
             stroke-dasharray="24.2 227.1" stroke-dashoffset="0" transform="rotate(-90 55 55)"/>
@@ -662,11 +656,8 @@ main { padding:2rem 2.5rem; max-width:1440px; margin:0 auto; }
           <text x="55" y="51" text-anchor="middle" fill="#e4e4f0" font-family="DM Mono" font-size="10" font-weight="500">ALL</text>
           <text x="55" y="63" text-anchor="middle" fill="#52527a" font-family="DM Mono" font-size="7.5">ASSETS</text>
         </svg>
-        <div class="legend-list">
-          <div class="leg-item"><span class="leg-name"><span class="leg-dot" style="background:#7c6af7"></span>基金</span><span class="leg-pct">8.6%</span></div>
-          <div class="leg-item"><span class="leg-name"><span class="leg-dot" style="background:#7c6af7"></span>台股</span><span class="leg-pct">54.0%</span></div>
-          <div class="leg-item"><span class="leg-name"><span class="leg-dot" style="background:#3ecf8e"></span>美股</span><span class="leg-pct">25.7%</span></div>
-          <div class="leg-item"><span class="leg-name"><span class="leg-dot" style="background:#f05c5c"></span>智能</span><span class="leg-pct">0.9%</span></div>
+        <div class="legend-list" id="donutLegend">
+
         </div>
       </div>
     </div>
