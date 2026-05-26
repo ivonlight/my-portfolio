@@ -686,7 +686,7 @@ main { padding:2rem 2.5rem; max-width:1440px; margin:0 auto; }
   <div class="sec-hd" style="margin-top:2rem"><h2>基金</h2><div class="ln"></div><div class="bdg">TWD</div></div>
   <table class="stk-table">
     <thead><tr>
-      <th>標的</th><th>本金</th><th style="text-align:right">輸入最新現值</th>
+      <th>標的</th><th style="text-align:right">輸入本金</th><th style="text-align:right">輸入最新現值</th>
       <th>損益</th><th>淨值日</th><th>報酬率</th><th>說明</th>
     </tr></thead>
     <tbody id="holdFundTable"></tbody>
@@ -968,9 +968,13 @@ function renderHoldTable(stocks, tbodyId) {
 
       tr.innerHTML = `
         <td><span class="sname">${s.name}</span><span class="scode">${s.code}</span></td>
-        <td style="font-family:var(--mono);font-size:.72rem">
-          <div style="color:var(--muted);font-size:.58rem;margin-bottom:.15rem">本金</div>
-          NT$${(s.totalCost||0).toLocaleString('zh-TW')}
+        <td style="text-align:right">
+          <div style="font-family:var(--mono);font-size:.58rem;color:var(--muted);margin-bottom:.2rem">本金 (TWD)</div>
+          <input class="price-input" type="number" id="fcost-${s.code}"
+            value="${s.totalCost||''}" step="1"
+            onchange="updateFundCost('${s.code}')"
+            onkeydown="if(event.key==='Enter')updateFundCost('${s.code}')"
+            style="width:110px">
         </td>
         <td style="text-align:right">
           <div style="font-family:var(--mono);font-size:.58rem;color:var(--muted);margin-bottom:.2rem">輸入最新現值 (TWD)</div>
@@ -1019,6 +1023,26 @@ function renderHoldTable(stocks, tbodyId) {
 
 // Update hold signal on price input
 const allHoldStocks = [...holdUS, ...holdTW, ...holdFunds];
+function updateFundCost(code) {
+  const s = holdFunds.find(x => x.code === code);
+  if (!s) return;
+  const inp = document.getElementById('fcost-' + code);
+  const val = parseFloat(inp.value);
+  if (isNaN(val) || val <= 0) return;
+  s.totalCost = val;
+  // Save to localStorage
+  try {
+    const saved = JSON.parse(localStorage.getItem('fund_costs') || '{}');
+    saved[code] = val;
+    localStorage.setItem('fund_costs', JSON.stringify(saved));
+  } catch(e) {}
+  // Recalculate P&L and ret
+  updateFund(code);
+  // Also re-render summary
+  renderSummaryStrip();
+  renderUnrealized();
+}
+
 function updateFund(code) {
   const s = holdFunds.find(x => x.code === code);
   if (!s) return;
@@ -1048,12 +1072,14 @@ function updateFund(code) {
   setTimeout(() => inp.classList.remove('updated'), 600);
 }
 
-// Load saved fund values on startup
+// Load saved fund values and costs on startup
 (function loadFundValues() {
   try {
-    const saved = JSON.parse(localStorage.getItem('fund_values') || '{}');
+    const savedVals = JSON.parse(localStorage.getItem('fund_values') || '{}');
+    const savedCosts = JSON.parse(localStorage.getItem('fund_costs') || '{}');
     holdFunds.forEach(s => {
-      if (saved[s.code] != null) s.totalValue = saved[s.code];
+      if (savedVals[s.code]  != null) s.totalValue = savedVals[s.code];
+      if (savedCosts[s.code] != null) s.totalCost  = savedCosts[s.code];
     });
   } catch(e) {}
 })();
