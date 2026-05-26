@@ -1221,7 +1221,7 @@ function renderUnrealized() {
   const items = [
     { label:'基金帳面損益', val:fundPnl,  isTW:true },
     { label:'台股帳面損益', val:twPnl,    isTW:true },
-    { label:'美股帳面損益', val:usPnl,    isTW:false },
+    { label:'美股帳面損益', val:usPnl,    isTW:false, rate:getUSDTWD() },
     { label:'台股+基金合計', val:twPnl+fundPnl, isTW:true, highlight:true },
   ];
   grid.innerHTML = items.map(item => {
@@ -1236,11 +1236,15 @@ function renderUnrealized() {
   }).join('');
 }
 
+function getUSDTWD() {
+  return window.USD_TWD || 31.5; // fallback if not yet fetched
+}
+
 function renderSummaryStrip() {
   const strip = document.getElementById('summaryStrip');
   if (!strip) return;
 
-  const USD_TWD = 31.5;
+  const USD_TWD = getUSDTWD();
   const SMART_VALUE = 0;
   const SMART_COST  = 0;
 
@@ -1313,7 +1317,7 @@ function renderDonut() {
   const slices = [
     { label:'基金', val:fundVal,  color:'#f0c05c' },
     { label:'台股', val:twVal,    color:'#7c6af7' },
-    { label:'美股', val:usVal,    color:'#3ecf8e' },
+    { label:'美股', val:usVal * getUSDTWD(),    color:'#3ecf8e' },
 
   ].filter(s => s.val > 0);
 
@@ -1641,6 +1645,14 @@ async function fetchLivePrices() {
     if (!res.ok) throw new Error('API error');
     const data = await res.json();
     livePrices = data.prices;
+
+    // Extract USD/TWD exchange rate
+    if (livePrices['TWD=X'] && livePrices['TWD=X'].price) {
+      window.USD_TWD = livePrices['TWD=X'].price;
+      // Update exchange rate display if exists
+      const fxEl = document.getElementById('fxRate');
+      if (fxEl) fxEl.textContent = 'USD/TWD ' + livePrices['TWD=X'].price.toFixed(2);
+    }
 
     // Update all stock prices in data arrays
     const allStocks = [...holdUS, ...holdTW, ...waveUS, ...waveTW];

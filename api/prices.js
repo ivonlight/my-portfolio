@@ -7,6 +7,7 @@ module.exports = async function handler(req, res) {
     'BRK-B','NVDA','PLTR','QQQ','TSLA','TSM',
     '0050.TW','2330.TW','009816.TW','00981A.TWO','00988A.TWO',
     '2454.TW','3135.TW','5292.TW','8033.TW',
+    'TWD=X', // USD/TWD 即時匯率
   ];
 
   const results = {};
