@@ -1908,6 +1908,44 @@ async function fetchLivePrices() {
 // ─────────────────────────────────────────────
 document.getElementById('updateTime').textContent = '載入中...';
 
+// Restore portfolio snapshot from localStorage
+(function restoreSnapshot() {
+  try {
+    const raw = localStorage.getItem('portfolio_snapshot');
+    if (!raw) return;
+    const snap = JSON.parse(raw);
+    if (!snap) return;
+
+    // Restore holdTW
+    if (snap.holdTW) snap.holdTW.forEach(saved => {
+      const s = holdTW.find(x => x.code === saved.code);
+      if (s) { s.shares = saved.shares; s.cost = saved.cost; s.price = saved.price; s.ret = saved.ret; }
+    });
+
+    // Restore holdUS
+    if (snap.holdUS) snap.holdUS.forEach(saved => {
+      const s = holdUS.find(x => x.code === saved.code);
+      if (s) { s.shares = saved.shares; s.cost = saved.cost; s.price = saved.price; s.ret = saved.ret; }
+    });
+
+    // Restore waveTW completely
+    if (snap.waveTW && snap.waveTW.length > 0) {
+      waveTW.length = 0;
+      snap.waveTW.forEach(s => waveTW.push(s));
+    }
+
+    // Restore waveUS completely
+    if (snap.waveUS && snap.waveUS.length > 0) {
+      waveUS.length = 0;
+      snap.waveUS.forEach(s => waveUS.push(s));
+    }
+
+    const t = new Date(snap.savedAt);
+    const timeStr = t.toLocaleString('zh-TW',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+    console.log('[Portfolio] Snapshot restored from ' + timeStr);
+  } catch(e) { console.warn('Restore failed:', e); }
+})();
+
 // Fetch live prices — handles all rendering
 fetchLivePrices();
 
@@ -2099,6 +2137,18 @@ function confirmImport() {
   if (izParsed.us) izParsed.us.forEach(p => {
     if (allCurrent.find(s => s.code===p.code || s.code===p.code.replace('-','/'))) matchedCount++;
   });
+
+  // Save imported portfolio to localStorage
+  try {
+    const snapshot = {
+      holdTW:  holdTW.map(s => ({...s})),
+      holdUS:  holdUS.map(s => ({...s})),
+      waveTW:  waveTW.map(s => ({...s})),
+      waveUS:  waveUS.map(s => ({...s})),
+      savedAt: new Date().toISOString(),
+    };
+    localStorage.setItem('portfolio_snapshot', JSON.stringify(snapshot));
+  } catch(e) { console.warn('Save failed:', e); }
 
   closeImport();
   document.getElementById('updateTime').textContent = new Date().toLocaleString('zh-TW',
