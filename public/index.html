@@ -956,11 +956,26 @@ const waveSigMap = {
 function getBuySignal(price, s) {
   if (s.isFund) return { cls:'sig-wait', lbl:'定期定額', note: s.note };
   if (!price || price <= 0) return { cls:'sig-wait', lbl:'待輸入', note:'' };
-  if (price <= s.strongBuy) return { cls:'sig-strong', lbl:'💚 強力買進', note:`現價低於強力買進區間 ${fmt(s.strongBuy,s.isTW)}` };
-  if (price <= s.buy)       return { cls:'sig-buy',    lbl:'✦ 可以買進', note:`現價在買進區間內（≤ ${fmt(s.buy,s.isTW)}）` };
-  if (price <= s.fair)      return { cls:'sig-wait',   lbl:'合理持有',  note:`現價合理，等待更好買點` };
-  if (price <= s.rich)      return { cls:'sig-warn',   lbl:'偏貴觀望',  note:`現價偏高，不建議加碼` };
-  return { cls:'sig-stop', lbl:'過高 勿追', note:`現價超過合理上限 ${fmt(s.rich,s.isTW)}` };
+
+  // 方案 D：52週位置 + 報酬率雙重判斷
+  const ret   = s.cost ? (price - s.cost) / s.cost * 100 : null;
+  const w52   = s.w52Position != null ? s.w52Position : null;
+  const lowW52  = w52 != null && w52 <= 30;
+  const lowRet  = ret != null && ret <= 10;
+  const highW52 = w52 != null && w52 >= 80;
+  const highRet = ret != null && ret >= 40;
+  const w52txt  = w52 != null ? `52週${w52}%` : '';
+  const retTxt  = ret != null ? `報酬${ret>=0?'+':''}${ret.toFixed(0)}%` : '';
+
+  if (lowW52 && lowRet)
+    return { cls:'sig-strong', lbl:'🟢 立即加碼', note:`${w52txt}・${retTxt}，市場低位且接近成本，積極出手` };
+  if (lowW52 || lowRet) {
+    const reason = lowW52 ? `市場低位（${w52txt}）` : `接近成本（${retTxt}）`;
+    return { cls:'sig-buy', lbl:'✅ 分批布局', note:`${reason}，建議分 2–3 次進場` };
+  }
+  if (highW52 && highRet)
+    return { cls:'sig-stop', lbl:'🚫 暫停單筆', note:`${w52txt}・${retTxt}，高位高報酬，維持定期定額即可` };
+  return { cls:'sig-wait', lbl:'⏳ 定期定額', note:`無明顯低點訊號，照計畫扣款，不需特別操作` };
 }
 
 function distFromCost(price, cost) {
@@ -1758,27 +1773,38 @@ function runAnalysis(mode) {
       // 存股加碼時機
       const holdStocks = [...holdTW, ...holdUS].filter(t => (t.shares||0) > 0);
       holdStocks.forEach(s => {
-        if (!s.price || !s.buy) return;
-        const isTW = !s.code?.match(/^[A-Z]/);
-        const priceFmt = isTW ? `NT$${Math.round(s.price).toLocaleString('zh-TW')}` : `$${s.price.toFixed(2)}`;
-        const buyFmt   = isTW ? `NT$${s.buy}` : `$${s.buy}`;
-        const strongFmt= isTW ? `NT$${s.strongBuy}` : `$${s.strongBuy}`;
-        const w52txt   = s.w52Position != null ? `，52週位置 ${s.w52Position}%` : '';
-        const ret = s.cost ? ((s.price-s.cost)/s.cost*100).toFixed(1) : 0;
+        if (!s.price) return;
+        const isTW   = !s.code?.match(/^[A-Z]/);
+        const pFmt   = isTW ? `NT$${Math.round(s.price).toLocaleString('zh-TW')}` : `$${s.price.toFixed(2)}`;
+        const ret    = s.cost ? (s.price - s.cost) / s.cost * 100 : null;
+        const retTxt = ret != null ? `${ret>=0?'+':''}${ret.toFixed(1)}%` : '—';
+        const w52    = s.w52Position;
+        const w52txt = w52 != null ? `52週 ${w52}%` : '52週資料不足';
+
+        // 方案 D 邏輯
+        const lowW52  = w52 != null && w52 <= 30;
+        const lowRet  = ret != null && ret <= 10;
+        const highW52 = w52 != null && w52 >= 80;
+        const highRet = ret != null && ret >= 40;
 
         let icon, color, verdict;
-        if (s.price <= (s.strongBuy||0)) {
-          icon='🟢'; color='var(--green)'; verdict=`現價 ${priceFmt} 低於強力買進價 ${strongFmt}${w52txt}，積極加碼！`;
-        } else if (s.price <= s.buy) {
-          icon='✅'; color='var(--green)'; verdict=`現價 ${priceFmt} 在買進區間內${w52txt}，可以分批加碼。`;
-        } else if (s.w52Position != null && s.w52Position <= 30) {
-          icon='👀'; color='var(--blue)'; verdict=`現價 ${priceFmt} 雖超出買進價，但52週低位 ${s.w52Position}%，仍有安全邊際，可小量建倉。`;
-        } else if (s.w52Position != null && s.w52Position >= 80) {
-          icon='🚫'; color='var(--red)'; verdict=`現價 ${priceFmt} 接近52週高點（${s.w52Position}%），不宜追高，等回調至 ${buyFmt} 以下。`;
+        if (lowW52 && lowRet) {
+          icon='🟢'; color='var(--green)';
+          verdict=`現價 ${pFmt}（${retTxt}），${w52txt}。兩個條件同時觸發：接近成本且市場低位，積極加碼時機！`;
+        } else if (lowW52) {
+          icon='✅'; color='var(--green)';
+          verdict=`現價 ${pFmt}（${retTxt}），${w52txt}。市場相對低位，建議分 2–3 次布局。`;
+        } else if (lowRet) {
+          icon='✅'; color='var(--blue)';
+          verdict=`現價 ${pFmt}（${retTxt}），${w52txt}。報酬率低表示接近成本，可分批布局。`;
+        } else if (highW52 && highRet) {
+          icon='🚫'; color='var(--red)';
+          verdict=`現價 ${pFmt}（${retTxt}），${w52txt}。已大幅獲利且接近高點，暫停單筆，維持定期定額即可。`;
         } else {
-          icon='⏳'; color='var(--muted)'; verdict=`現價 ${priceFmt}，買進目標 ${buyFmt}${w52txt}，繼續觀察。`;
+          icon='⏳'; color='var(--muted)';
+          verdict=`現價 ${pFmt}（${retTxt}），${w52txt}。無明顯低點訊號，繼續定期定額，不需要特別操作。`;
         }
-        html += fmtSignal(icon, s.name + `（${ret>=0?'+':''}${ret}%）`, verdict, color);
+        html += fmtSignal(icon, s.name, verdict, color);
       });
 
       // 基金
