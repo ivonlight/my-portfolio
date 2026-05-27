@@ -2031,15 +2031,43 @@ function confirmImport() {
     newWave.forEach(s => waveTW.push(s));
   }
   if (izParsed.us) {
-    izParsed.us.forEach(parsed => {
-      const existing = [...waveUS, ...holdUS].find(s => s.code === parsed.code || s.code === parsed.code.replace('-','/'));
-      if (existing) {
-        existing.price = parsed.price;
-        existing.shares = parsed.shares;
-        existing.cost = parsed.cost;
-        existing.ret = parsed.cost ? Math.round(((parsed.price - parsed.cost) / parsed.cost) * 10000) / 100 : existing.ret;
+    const codeMatch = (a, b) => a === b || a === b.replace('-','/') || b === a.replace('-','/');
+
+    // Step 1: Update holdUS (存股) from CSV
+    holdUS.forEach(s => {
+      const p = izParsed.us.find(p => codeMatch(p.code, s.code));
+      if (p) {
+        s.price = p.price; s.shares = p.shares; s.cost = p.cost;
+        s.ret = p.cost ? Math.round(((p.price-p.cost)/p.cost)*10000)/100 : s.ret;
+      } else {
+        // Not in CSV = sold out
+        s.shares = 0; s.ret = 0;
       }
     });
+
+    // Step 2: Rebuild waveUS completely from CSV
+    const waveFromCSV = izParsed.us.filter(p =>
+      !holdUS.some(s => codeMatch(p.code, s.code))
+    );
+    const newWaveUS = waveFromCSV.map(p => {
+      const ex = waveUS.find(s => codeMatch(p.code, s.code));
+      return {
+        code:   p.code,
+        name:   p.name || ex?.name || p.code,
+        cost:   p.cost,
+        price:  p.price,
+        shares: p.shares,
+        ret:    p.cost ? Math.round(((p.price-p.cost)/p.cost)*10000)/100 : 0,
+        tp1:    ex?.tp1    || null,
+        tp2:    ex?.tp2    || null,
+        sl:     ex?.sl     || null,
+        signal: ex?.signal || 'hold',
+        note:   ex?.note   || '',
+        isTW:   false,
+      };
+    });
+    waveUS.length = 0;
+    newWaveUS.forEach(s => waveUS.push(s));
   }
   // Count how many matched
   let matchedCount = 0;
