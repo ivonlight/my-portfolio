@@ -1974,7 +1974,28 @@ function izParseFile(file, market) {
         if (code && shares>0) rows.push({code,name,shares,cost,price,type:'波段',market:'us'});
       }
     });
-    izParsed[market] = rows;
+    // Merge duplicate stocks (same code) into weighted average
+    const merged = {};
+    rows.forEach(r => {
+      const key = r.code;
+      if (!merged[key]) {
+        merged[key] = { ...r };
+      } else {
+        const existing = merged[key];
+        const totalShares = existing.shares + r.shares;
+        // Weighted average cost
+        existing.cost   = totalShares > 0
+          ? (existing.cost * existing.shares + r.cost * r.shares) / totalShares
+          : existing.cost;
+        existing.cost   = Math.round(existing.cost * 100) / 100;
+        existing.shares = totalShares;
+        // Use latest price
+        existing.price  = r.price || existing.price;
+        // Use the longer/more descriptive name
+        if (r.name && r.name.length > existing.name.length) existing.name = r.name;
+      }
+    });
+    izParsed[market] = Object.values(merged);
     const zone = document.getElementById('iz-'+market);
     const ok   = document.getElementById('iz-'+market+'-ok');
     zone.classList.add('has-file');
