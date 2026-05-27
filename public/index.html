@@ -2083,15 +2083,19 @@ document.getElementById('updateTime').textContent = '載入中...';
     });
 
     // Restore waveTW completely
+    // Filter out stocks that have been moved to holdTW
+    const holdTWCodes = holdTW.map(s => s.code);
     if (snap.waveTW && snap.waveTW.length > 0) {
       waveTW.length = 0;
-      snap.waveTW.forEach(s => waveTW.push(s));
+      snap.waveTW.filter(s => !holdTWCodes.includes(s.code)).forEach(s => waveTW.push(s));
     }
 
     // Restore waveUS completely
+    // But filter out stocks that have been moved to holdUS
+    const holdUSCodes = holdUS.map(s => s.code);
     if (snap.waveUS && snap.waveUS.length > 0) {
       waveUS.length = 0;
-      snap.waveUS.forEach(s => waveUS.push(s));
+      snap.waveUS.filter(s => !holdUSCodes.includes(s.code)).forEach(s => waveUS.push(s));
     }
 
     const t = new Date(snap.savedAt);
