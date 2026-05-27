@@ -2678,33 +2678,56 @@ document.addEventListener('click', e => {
 });
 
 function buildPortfolioContext() {
-  // Build a concise portfolio summary to send to Claude
-  const lines = [];
-  lines.push('【我的投資組合摘要 - 請根據以下數據回答】');
-  lines.push('');
-  lines.push('台股持倉（TWD）：');
-  lines.push('- 0050 元大台灣50：3,406股，均價$50.1，現價~$97.3，+93.88%');
-  lines.push('- 台積電 2330：62股，均價$1,645，現價~$2,255，+36.5%');
-  lines.push('- 聯發科 2454：2股，均價$3,205，現價~$3,860，+20%');
-  lines.push('- 華懋 5292：44股，均價$239.84，現價~$219.5，-8.82% ⚠️虧損');
-  lines.push('- 凌航 3135：50股，均價$197，現價~$211.5，+6.97%');
-  lines.push('- 雷虎 8033：50股，均價$132，現價~$138，+4.18%');
-  lines.push('- 凱基台灣T 009816：3,225股，+9.95%');
-  lines.push('- 主動統一台股 00981A：1,185股，+12.6%');
-  lines.push('');
-  lines.push('美股持倉（USD，複委託）：');
-  lines.push('- BRK/B：7.57股，均價$474.52，現價~$480，存股');
-  lines.push('- QQQ：3.06股，均價$571.05，現價~$714，+25%，存股');
-  lines.push('- NVDA：10.87股，均價$174.9，現價~$219，+25.5%');
-  lines.push('- TSLA：0.89股，均價$303.57，現價~$418，+37.65%');
-  lines.push('- PLTR：1股，均價$133.11，現價~$137，+3.23%');
-  lines.push('- TSM：0.29股，均價$340.34，現價~$407，+19.63%');
-  lines.push('');
-  lines.push('基金：安聯台灣科技(+8.07%)、路博邁台日雙星(-0.75%)');
-  lines.push('投資總現值約 TWD $967,000，總報酬率 +34.05%');
-  lines.push('');
+  const fx = getUSDTWD() || 31.5;
+  const fmt = (n, isUS) => isUS ? '$'+n.toFixed(2) : 'NT$'+Math.round(n).toLocaleString('zh-TW');
+  const lines = ['【我的投資組合摘要】', ''];
+
+  // 基金
+  if (holdFunds.length) {
+    lines.push('基金：');
+    holdFunds.forEach(f => {
+      const val  = f.totalValue || f.totalCost || 0;
+      const cost = f.totalCost || 0;
+      const ret  = cost ? ((val-cost)/cost*100).toFixed(2) : '0.00';
+      lines.push(`- ${f.name}：本金 NT$${cost.toLocaleString('zh-TW')}，現值 NT$${Math.round(val).toLocaleString('zh-TW')}，${ret>=0?'+':''}${ret}%`);
+    });
+    lines.push('');
+  }
+
+  // 台股
+  const twAll = [...holdTW, ...waveTW].filter(s => (s.shares||0) > 0);
+  if (twAll.length) {
+    lines.push('台股持倉（TWD）：');
+    twAll.forEach(s => {
+      const ret = s.cost ? ((s.price-s.cost)/s.cost*100).toFixed(2) : '0.00';
+      const val = Math.round(s.price * s.shares);
+      lines.push(`- ${s.name}（${s.code}）：${s.shares}股，均價 NT$${s.cost}，現價 NT$${s.price}，${ret>=0?'+':''}${ret}%，市值 NT$${val.toLocaleString('zh-TW')}`);
+    });
+    lines.push('');
+  }
+
+  // 美股
+  const usAll = [...holdUS, ...waveUS].filter(s => (s.shares||0) > 0);
+  if (usAll.length) {
+    lines.push('美股持倉（USD）：');
+    usAll.forEach(s => {
+      const ret = s.cost ? ((s.price-s.cost)/s.cost*100).toFixed(2) : '0.00';
+      const val = (s.price * s.shares).toFixed(2);
+      lines.push(`- ${s.name}（${s.code}）：${s.shares}股，均價 $${s.cost}，現價 $${s.price}，${ret>=0?'+':''}${ret}%，市值 $${val}`);
+    });
+    lines.push('');
+  }
+
+  // 摘要
+  const twVal  = twAll.reduce((s,t)=>s+(t.price||0)*(t.shares||0),0);
+  const usVal  = usAll.reduce((s,t)=>s+(t.price||0)*(t.shares||0),0);
+  const fundVal= holdFunds.reduce((s,f)=>s+(f.totalValue||f.totalCost||0),0);
+  const total  = twVal + usVal*fx + fundVal;
+  lines.push(`投資總現值：約 NT$${Math.round(total).toLocaleString('zh-TW')}（美股以 USD/TWD ${fx.toFixed(1)} 換算）`);
+
   return lines.join('\n');
 }
+
 
 function openClaude(type) {
   document.getElementById('bubbleMenu').classList.remove('open');
