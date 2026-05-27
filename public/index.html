@@ -1599,59 +1599,44 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 // AI ANALYSIS
 // ─────────────────────────────────────────────
 let currentAIMode = null;
-const aiPrompts = {
-  portfolio: `你是一位專業的投資組合分析師。以下是用戶目前的持倉數據，請用繁體中文給出具體、簡潔的分析：
+const aiPrompts = {}; // populated dynamically
 
-【基金】安聯台灣科技(+8.07%，本金$74,000)、路博邁台日雙星(-0.75%，本金$13,000)
+function buildAiPrompts() {
+  const ctx = buildPortfolioContext();
 
-【台股持倉】
-- 0050 元大台灣50：3,408股，成本 $50.1，現價 $97.3，+93.88%
-- 凱基台灣T 009816：3,225股，成本 $12.88，現價 $14.72，+14.06%
-- 2330 台積電：62股，成本 $1,645，現價 $2,295，+39.4%
-- 2454 聯發科：1股，成本 $3,100，現價 $4,245，+36.9%
-- 5292 華懋：44股，成本 $239.84，現價 $220.5，-8.5% ⚠️
-- 凌航(+7%)、雷虎(+4%)
+  aiPrompts.portfolio = `你是一位專業的投資組合分析師。以下是用戶目前的持倉數據，請用繁體中文給出具體、簡潔的分析：
 
-【美股持倉（USD）】
-- BRK/B：7.57股，均價 $474.52，現價 $479.98（存股）
-- QQQ：3.06股，均價 $571.05，現價 $714.51，+25%（存股）
-- NVDA：10.87股，均價 $174.9，現價 $219.51，+25.5%
-- TSLA：0.89股，均價 $303.57，現價 $417.85，+37.65%
-- PLTR：1股，均價 $133.11，現價 $137.42，+3.23%
-- TSM：0.29股，均價 $340.34，現價 $407.15，+19.63%
+${ctx}
 
-請針對：1)整體組合健康度 2)最需要關注的3個風險點 3)建議的下一步行動，各給出2-3句具體建議。格式清楚、不用廢話。`,
+請針對：
+1) 整體組合健康度（配置是否合理、報酬率評估）
+2) 最需要關注的 3 個風險點（具體說明）
+3) 建議的下一步行動（具體、有數字）
 
-  buy: `你是一位專業投資顧問。用戶有以下存股標的，想知道現在是否是好的加碼時機：
+格式清楚，不用廢話。`;
 
-【基金】安聯台灣科技：本金$74,000，+8.07%。路博邁台日雙星：本金$13,000，-0.75%。
+  aiPrompts.buy = `你是一位專業投資顧問。以下是用戶目前的持倉數據：
 
-【台股存股】
-- 0050 元大台灣50：3,408股，均價 $50.1，現價 $97.3（+93.88%）
-- 凱基台灣T 009816：3,225股，均價 $12.88，現價 $14.72（+14.06%）
-- 台積電 2330：62股，均價 $1,645，現價 $2,295（+39.4%）
+${ctx}
 
-【美股存股】
-- BRK/B：7.57股，均價 $474.52，現價 $479.98（+1.15%）
-- QQQ：3.06股，均價 $571.05，現價 $714.51（+25.1%）
+請用繁體中文分析每一檔存股標的現在是否值得加碼：
+1) 現在進場是否合理（根據現價位置）
+2) 建議等到什麼價位再加碼
+3) 加碼策略（單筆 or 分批）
 
-請用繁體中文針對每一檔，說明：1.現在加碼是否合理 2.建議等到什麼價位 3.建議策略`,
+只針對存股標的，波段股不分析。`;
 
-  risk: `你是一位風險管理顧問。以下投資組合有哪些需要立即關注的風險，請用繁體中文回答：
+  aiPrompts.risk = `你是一位風險管理顧問。以下是用戶目前的持倉數據：
 
-【基金】路博邁台日雙星 -0.75%（本金$13,000）
+${ctx}
 
-【台股風險】
-- 台積電三重曝險：2330現股 + TSM ADR + 0050（內含台積電約35%）
-- 華懋5292 -8.5% 持續虧損（44股）
-- 凌航已達52週高點
+請用繁體中文列出這個組合目前最需要關注的風險：
+1) 每個風險點的具體說明
+2) 建議立即採取的行動
+3) 設定的警示價位
 
-【美股風險】
-- TSLA +37.65% 未鎖利（0.89股）
-- NVDA均價 $174.9，10.87股，+25.5%
-
-請針對每個風險點說明：1)具體風險 2)建議立即做什麼 3)設什麼警示價位。格式要清楚，數字要具體。`
-};
+格式要清楚，數字要具體。`;
+}
 
 function runAI(mode) {
   currentAIMode = mode;
@@ -1711,79 +1696,146 @@ function runAnalysis(mode) {
   output.innerHTML = '<div style="color:var(--muted);font-size:.75rem;padding:.5rem">分析中...</div>';
 
   setTimeout(() => {
-    const prices = getCurrentPrices();
+    const fx = getUSDTWD() || 31.5;
     let html = '';
 
-    if (mode === 'portfolio') {
-      const twVal=586388, usVal=278825, fundVal=92872, smartVal=9239;
-      const total = twVal+usVal+fundVal+smartVal;
-      const twPct = (twVal/total*100).toFixed(0);
+    // ── 動態計算目前持倉數據 ──
+    const activeTW = [...holdTW, ...waveTW].filter(t => (t.shares||0) > 0);
+    const activeUS = [...holdUS, ...waveUS].filter(t => (t.shares||0) > 0);
+    const twVal  = activeTW.reduce((s,t) => s + (t.price||0)*(t.shares||0), 0);
+    const twCost = activeTW.reduce((s,t) => s + (t.cost||0)*(t.shares||0), 0);
+    const usValUSD = activeUS.reduce((s,t) => s + (t.price||0)*(t.shares||0), 0);
+    const usVal  = usValUSD * fx;
+    const usCost = activeUS.reduce((s,t) => s + (t.cost||0)*(t.shares||0), 0) * fx;
+    const fundVal = holdFunds.reduce((s,f) => s + (f.totalValue||f.totalCost||0), 0);
+    const fundCost= holdFunds.reduce((s,f) => s + (f.totalCost||0), 0);
+    const total  = twVal + usVal + fundVal;
+    const twPct  = total ? twVal/total*100 : 0;
+    const usPct  = total ? usVal/total*100 : 0;
+    const fundPct= total ? fundVal/total*100 : 0;
+    const totalRet = (twCost+usCost+fundCost) ? (twVal+usVal+fundVal-twCost-usCost-fundCost)/(twCost+usCost+fundCost)*100 : 0;
+    const twRet  = twCost  ? (twVal -twCost) /twCost *100 : 0;
+    const usRet  = usCost  ? (usVal -usCost) /usCost *100 : 0;
+    const fundRet= fundCost? (fundVal-fundCost)/fundCost*100 : 0;
 
-      html += fmtSignal('✅','組合整體報酬良好',
-        '總報酬率 +34.05%，台股(+54.54%)、美股(+13.41%)雙線齊漲。持倉結構健康，無過度槓桿。',
+    // 虧損部位
+    const losers  = activeTW.concat(activeUS).filter(s => s.price && s.cost && (s.price-s.cost)/s.cost < -0.05);
+    // 大幅獲利未鎖利
+    const bigWin  = activeTW.concat(activeUS).filter(s => s.price && s.cost && (s.price-s.cost)/s.cost > 0.25);
+    // 接近高點（52週 > 80%）
+    const highPos = activeTW.concat(activeUS).filter(s => s.w52Position != null && s.w52Position >= 80);
+    // 低位可買
+    const lowPos  = activeTW.concat(activeUS).filter(s => s.w52Position != null && s.w52Position <= 30);
+
+    if (mode === 'portfolio') {
+      html += fmtSignal('📊', `整體報酬 ${totalRet>=0?'+':''}${totalRet.toFixed(2)}%`,
+        `台股 ${twRet>=0?'+':''}${twRet.toFixed(1)}%（現值 NT$${Math.round(twVal).toLocaleString('zh-TW')}）、` +
+        `美股 ${usRet>=0?'+':''}${usRet.toFixed(1)}%（現值 NT$${Math.round(usVal).toLocaleString('zh-TW')}）、` +
+        `基金 ${fundRet>=0?'+':''}${fundRet.toFixed(1)}%（現值 NT$${Math.round(fundVal).toLocaleString('zh-TW')}）`,
         'var(--green)');
 
-      if (twPct > 50) html += fmtSignal('⚠️',`台股集中度偏高（${twPct}%）`,
-        `台股佔總資產 ${twPct}%。加上 0050 內含台積電約 35%、直接持有 2330 現股、TSM ADR，台積電單一曝險超過 20%。建議逐步將台股比重降至 50% 以下。`,
+      if (twPct > 55) html += fmtSignal('⚠️', `台股集中度偏高（${twPct.toFixed(0)}%）`,
+        `台股佔總資產 ${twPct.toFixed(0)}%，目標 40%。建議逐步提升美股比重。`, 'var(--yellow)');
+
+      if (usPct < 35) html += fmtSignal('💡', `美股比重偏低（${usPct.toFixed(0)}%）`,
+        `美股長期年化報酬優於台股，建議提升至 40-45%。可加碼 QQQ 或 BRK/B。`, 'var(--blue)');
+
+      // 台積電三重曝險
+      const has2330 = activeTW.some(s=>s.code==='2330');
+      const hasTSM  = activeUS.some(s=>s.code==='TSM');
+      const has0050 = activeTW.some(s=>s.code==='0050');
+      if (has2330 && hasTSM && has0050) html += fmtSignal('⚠️', '台積電三重曝險',
+        '同時持有 0050（內含台積電35%）、2330 現股、TSM ADR，台積電單一曝險超過 20%。建議在高點出清其中一個部位。',
         'var(--yellow)');
 
-      const tslaP = prices['TSLA']||417.85;
-      const tslaRet = ((tslaP-303.57)/303.57*100);
-      if (tslaRet > 30) html += fmtSignal('💡',`TSLA +${tslaRet.toFixed(1)}% — 獲利可部分鎖定`,
-        `建議在 $450 附近掛停利單減半出場，保留一半享受後續漲幅。`,
-        'var(--blue)');
-
-      html += fmtSignal('📊','資產配置建議',
-        '目前配置：台股 54% / 美股 26% / 基金 9%。建議方向：美股可提升至 30-35%（加碼 QQQ），台積電三重曝險可在高點出清 TSM ADR。',
-        'var(--accent)');
+      if (bigWin.length > 0) html += fmtSignal('💰', `${bigWin.length} 個部位大幅獲利`,
+        bigWin.map(s => {
+          const ret = ((s.price-s.cost)/s.cost*100).toFixed(1);
+          return `${s.name} +${ret}%`;
+        }).join('、') + '。建議考慮部分鎖利。', 'var(--blue)');
 
     } else if (mode === 'buy') {
-      const holdTargets = [
-        { name:'0050 元大台灣50',  price:prices['0050']||97.3,  strongBuy:88,  buy:92,  note:'現價超過成本近 2 倍，維持定期定額即可，等回測 $92 再單筆加碼。' },
-        { name:'台積電 2330',      price:prices['2330']||2255,   strongBuy:1900,buy:2050,note:'在合理偏高區。等回測 $2,050 以下再加碼，不宜追高。' },
-        { name:'BRK/B',            price:prices['BRK/B']||479.98,strongBuy:440, buy:460, note:'接近均價，合理偏高。跌至 $460 以下為理想加碼點。' },
-        { name:'QQQ',              price:prices['QQQ']||714.51,  strongBuy:620, buy:660, note:'現價超過均價 25%，處於偏貴區。等回調至 $660 再加碼，切勿追高。' },
-      ];
-      holdTargets.forEach(s => {
+      // 存股加碼時機
+      const holdStocks = [...holdTW, ...holdUS].filter(t => (t.shares||0) > 0);
+      holdStocks.forEach(s => {
+        if (!s.price || !s.buy) return;
+        const isTW = !s.code?.match(/^[A-Z]/);
+        const priceFmt = isTW ? `NT$${Math.round(s.price).toLocaleString('zh-TW')}` : `$${s.price.toFixed(2)}`;
+        const buyFmt   = isTW ? `NT$${s.buy}` : `$${s.buy}`;
+        const strongFmt= isTW ? `NT$${s.strongBuy}` : `$${s.strongBuy}`;
+        const w52txt   = s.w52Position != null ? `，52週位置 ${s.w52Position}%` : '';
+        const ret = s.cost ? ((s.price-s.cost)/s.cost*100).toFixed(1) : 0;
+
         let icon, color, verdict;
-        if (s.price <= s.strongBuy)    { icon='💚'; color='var(--green)';  verdict='💚 強力加碼時機！'; }
-        else if (s.price <= s.buy)     { icon='✦';  color='var(--blue)';   verdict='✦ 可以加碼'; }
-        else if (s.price <= s.buy*1.08){ icon='⏳'; color='var(--muted)';  verdict='合理，定期定額即可'; }
-        else                           { icon='🚫'; color='var(--yellow)'; verdict='偏貴，等待回調'; }
-        const d = ((s.price-s.buy)/s.buy*100);
-        const dStr = d>=0 ? `高於買進價 +${d.toFixed(1)}%` : `低於買進價 ${Math.abs(d).toFixed(1)}%`;
-        html += fmtSignal(icon, `${s.name} — ${verdict}`,
-          `現價 $${s.price.toLocaleString()}，${dStr}。${s.note}`, color);
+        if (s.price <= (s.strongBuy||0)) {
+          icon='🟢'; color='var(--green)'; verdict=`現價 ${priceFmt} 低於強力買進價 ${strongFmt}${w52txt}，積極加碼！`;
+        } else if (s.price <= s.buy) {
+          icon='✅'; color='var(--green)'; verdict=`現價 ${priceFmt} 在買進區間內${w52txt}，可以分批加碼。`;
+        } else if (s.w52Position != null && s.w52Position <= 30) {
+          icon='👀'; color='var(--blue)'; verdict=`現價 ${priceFmt} 雖超出買進價，但52週低位 ${s.w52Position}%，仍有安全邊際，可小量建倉。`;
+        } else if (s.w52Position != null && s.w52Position >= 80) {
+          icon='🚫'; color='var(--red)'; verdict=`現價 ${priceFmt} 接近52週高點（${s.w52Position}%），不宜追高，等回調至 ${buyFmt} 以下。`;
+        } else {
+          icon='⏳'; color='var(--muted)'; verdict=`現價 ${priceFmt}，買進目標 ${buyFmt}${w52txt}，繼續觀察。`;
+        }
+        html += fmtSignal(icon, s.name + `（${ret>=0?'+':''}${ret}%）`, verdict, color);
+      });
+
+      // 基金
+      holdFunds.forEach(f => {
+        const pnl = (f.totalValue||0) - (f.totalCost||0);
+        const ret = f.totalCost ? (pnl/f.totalCost*100).toFixed(1) : 0;
+        html += fmtSignal('📈', f.name,
+          `目前${ret>=0?'獲利':'虧損'} ${ret>=0?'+':''}${ret}%。基金適合長期持有，短期波動屬正常，繼續持有。`,
+          ret>=0 ? 'var(--green)' : 'var(--muted)');
       });
 
     } else if (mode === 'risk') {
-      const hwP = prices['5292']||219.5;
-      const hwRet = ((hwP-239.84)/239.84*100);
-      html += fmtSignal('🔴',`華懋 5292 — 虧損 ${hwRet.toFixed(1)}%，需立即行動`,
-        `成本 $239.84，現價 $${hwP}，持股 44 張（市值約 $${(hwP*44).toLocaleString()}）。建議在 $210 設停損單，跌破務必出場。`,
-        'var(--red)');
+      let hasRisk = false;
 
-      html += fmtSignal('⚠️','台積電三重曝險',
-        '同時持有：2330現股 + TSM ADR + 0050(含台積電35%)，單一個股曝險超過 20%。建議在台積電高點考慮出清 TSM ADR，降低集中風險。',
-        'var(--yellow)');
+      losers.forEach(s => {
+        hasRisk = true;
+        const ret = ((s.price-s.cost)/s.cost*100).toFixed(1);
+        const isTW = !s.code?.match(/^[A-Z]/);
+        const pFmt = isTW ? `NT$${Math.round(s.price)}` : `$${s.price}`;
+        const slFmt= s.sl ? (isTW ? `NT$${s.sl}` : `$${s.sl}`) : '未設定';
+        html += fmtSignal('🔴', `${s.name} 虧損 ${ret}%`,
+          `現價 ${pFmt}，停損線 ${slFmt}。${s.price <= (s.sl||0) ? '⚠️ 已跌破停損線，建議立即處理！' : '繼續觀察，跌破停損線要執行。'}`,
+          'var(--red)');
+      });
 
-      const tslaP = prices['TSLA']||417.85;
-      const tslaRet = ((tslaP-303.57)/303.57*100);
-      if (tslaRet > 25) html += fmtSignal('💡',`TSLA +${tslaRet.toFixed(1)}% — 獲利未鎖定`,
-        `持股 0.89 股，建議在 $450 掛停利單，漲破自動出場一半，剩餘部位移動停利至 $390。`,
-        'var(--blue)');
+      bigWin.forEach(s => {
+        hasRisk = true;
+        const ret = ((s.price-s.cost)/s.cost*100).toFixed(1);
+        const isTW = !s.code?.match(/^[A-Z]/);
+        const tp1Fmt = s.tp1 ? (isTW ? `NT$${s.tp1}` : `$${s.tp1}`) : '未設定';
+        html += fmtSignal('💡', `${s.name} +${ret}% — 考慮鎖利`,
+          `現價已達到或超過停利目標附近（${tp1Fmt}），可考慮減半出場，保護獲利。`,
+          'var(--blue)');
+      });
 
-      const nvdaP = prices['NVDA']||219.51;
-      const nvdaRet = ((nvdaP-174.9)/174.9*100);
-      html += fmtSignal('📌',`NVDA +${nvdaRet.toFixed(1)}% — 留意 AI 族群輪動`,
-        `持股 10.87 股，均價 $174.9。若 NVDA 跌破 $195 建議減倉至少一半，保留低成本部位長抱。`,
-        'var(--accent)');
+      highPos.forEach(s => {
+        if (bigWin.some(b=>b.code===s.code)) return; // already shown
+        hasRisk = true;
+        html += fmtSignal('⚠️', `${s.name} 接近52週高點（${s.w52Position}%）`,
+          '現價偏高，不宜追加，注意回撤風險。', 'var(--yellow)');
+      });
 
+      if (lowPos.length > 0) {
+        html += fmtSignal('🟢', `${lowPos.map(s=>s.name).join('、')} 在52週低位`,
+          `這些標的目前處於相對低位，如果仍在投資邏輯內，可以考慮加碼。`, 'var(--green)');
+      }
+
+      if (!hasRisk && lowPos.length === 0) {
+        html += fmtSignal('✅', '目前無重大風險訊號',
+          '所有持倉報酬和位置均在合理範圍，繼續持有並定期檢視。', 'var(--green)');
+      }
     }
 
-    output.innerHTML = html;
-  }, 200);
+    output.innerHTML = html || '<div style="color:var(--muted);font-size:.75rem">無資料</div>';
+  }, 150);
 }
+
 
 function runAIFromBtn() {}
 
