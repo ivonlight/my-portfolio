@@ -668,19 +668,8 @@ main { padding:2rem 2.5rem; max-width:1440px; margin:0 auto; }
   <!-- Priority actions -->
   <div class="action-panel">
     <h3>⚡ 本週優先行動</h3>
-    <div class="action-grid">
-      <div class="action-item">
-        <div class="ap-num neg">①</div>
-        <div class="ap-body"><h4>華懋 5292 — 停損</h4><p>現虧−8.82%，方向不對。設 $210 停損單，避免繼續擴損。</p></div>
-      </div>
-      <div class="action-item">
-        <div class="ap-num neu">②</div>
-        <div class="ap-body"><h4>TSLA — 掛停利單</h4><p>獲利+37.65%，建議 $450 掛減半停利，鎖住收益。</p></div>
-      </div>
-      <div class="action-item">
-        <div class="ap-num neu">③</div>
-        <div class="ap-body"><h4>NVDA 高成本批次</h4><p>均價 $204 那批僅+7.6%，可先出掉，保留低成本批（$152，+44%）。</p></div>
-      </div>
+    <div class="action-grid" id="actionGrid">
+      <div style="color:var(--muted);font-size:.72rem;padding:.5rem">載入中...</div>
     </div>
   </div>
 </div>
@@ -852,6 +841,13 @@ const holdUS = [
     isTW: false
   },
   {
+    code:'NVDA', name:'NVIDIA',
+    cost: 174.9, shares: 10.87, price: 219.51,
+    strongBuy: 165, buy: 185, fair: 220, rich: 260,
+    note:'AI核心持股，長期存股。跌至 $185 以下為理想加碼點。',
+    isTW: false
+  },
+  {
     code:'QQQ', name:'Invesco QQQ',
     cost: 571.05, shares: 3.06421, // 加權均價：1股@$594.07 + 2.06股@$563.07
     price: 714.51,
@@ -910,7 +906,6 @@ const holdFunds = [
 
 // 波段標的（均價已合併加權平均）
 const waveUS = [
-  { code:'NVDA', name:'NVIDIA',    cost:174.9,  price:219.51, ret:25.5,  tp1:240, tp2:260, sl:195, signal:'warn', shares:10.86983, note:'加權均價 $174.9（共10.87股）' },
   { code:'TSLA', name:'Tesla',     cost:303.57, price:417.85, ret:37.65, tp1:450, tp2:500, sl:370, signal:'sell', shares:0.89042,  note:'獲利豐厚，可掛移動停利' },
   { code:'PLTR', name:'Palantir',  cost:133.11, price:137.42, ret:3.23,  tp1:155, tp2:170, sl:125, signal:'hold', shares:1,        note:'倉位小，空間有限' },
   { code:'TSM',  name:'TSMC ADR',  cost:340.34, price:407.15, ret:19.63, tp1:440, tp2:480, sl:370, signal:'warn', shares:0.29412,  note:'與台積電重疊，留意總曝險' },
@@ -1448,6 +1443,79 @@ function getUSDTWD() {
   return window.USD_TWD || 31.5; // fallback if not yet fetched
 }
 
+function renderActionGrid() {
+  const grid = document.getElementById('actionGrid');
+  if (!grid) return;
+
+  const actions = [];
+  const allStocks = [...holdTW,...waveTW,...holdUS,...waveUS].filter(t=>(t.shares||0)>0);
+
+  // 1. 停損警示（虧損超過 5%）
+  allStocks.forEach(s => {
+    if (!s.price || !s.cost) return;
+    const ret = (s.price-s.cost)/s.cost*100;
+    if (ret <= -5) {
+      const isTW = !s.code?.match(/^[A-Z]/);
+      const slFmt = s.sl ? (isTW?`NT$${s.sl}`:`$${s.sl}`) : '未設定';
+      const atSL = s.sl && s.price <= s.sl;
+      actions.push({
+        num:'①', cls:'neg',
+        title: `${s.name} — ${atSL?'⚠️ 已觸停損':'留意停損'}`,
+        desc: `現虧 ${ret.toFixed(1)}%，停損線 ${slFmt}。${atSL?'建議立即處理！':'跌破停損線要執行。'}`,
+        priority: atSL ? 10 : 5
+      });
+    }
+  });
+
+  // 2. 大幅獲利未鎖利（獲利超過 25%，有停利目標）
+  allStocks.forEach(s => {
+    if (!s.price || !s.cost || !s.tp1) return;
+    const ret = (s.price-s.cost)/s.cost*100;
+    if (ret >= 25) {
+      const isTW = !s.code?.match(/^[A-Z]/);
+      const tp1Fmt = isTW ? `NT$${s.tp1}` : `$${s.tp1}`;
+      const atTP = s.price >= s.tp1;
+      actions.push({
+        num:'②', cls:'neu',
+        title: `${s.name} — ${atTP?'達到停利目標':'考慮鎖利'}`,
+        desc: `獲利 +${ret.toFixed(1)}%${atTP?`，現價已達停利目標 ${tp1Fmt}`:''}。建議掛減半停利單保護收益。`,
+        priority: atTP ? 8 : 3
+      });
+    }
+  });
+
+  // 3. 立即加碼訊號（存股低點）
+  [...holdTW,...holdUS].filter(t=>(t.shares||0)>0).forEach(s => {
+    if (!s.price || !s.cost) return;
+    const ret = (s.price-s.cost)/s.cost*100;
+    const w52 = s.w52Position;
+    if (w52 != null && w52 <= 30 && ret <= 10) {
+      actions.push({
+        num:'③', cls:'pos',
+        title: `${s.name} — 立即加碼時機`,
+        desc: `52週低位 ${w52}% 且報酬率 ${ret.toFixed(1)}%，兩個條件觸發，建議積極出手。`,
+        priority: 6
+      });
+    }
+  });
+
+  // Sort by priority and take top 3
+  actions.sort((a,b) => b.priority - a.priority);
+  const top3 = actions.slice(0,3);
+
+  if (top3.length === 0) {
+    grid.innerHTML = '<div style="color:var(--muted);font-size:.72rem;padding:.5rem;grid-column:1/-1">目前無需立即處理的行動項目，持續觀察即可。</div>';
+    return;
+  }
+
+  const nums = ['①','②','③'];
+  grid.innerHTML = top3.map((a,i) => `
+    <div class="action-item">
+      <div class="ap-num ${a.cls}">${nums[i]}</div>
+      <div class="ap-body"><h4>${a.title}</h4><p>${a.desc}</p></div>
+    </div>`).join('');
+}
+
 function renderSummaryStrip() {
   const strip = document.getElementById('summaryStrip');
   if (!strip) return;
@@ -1563,17 +1631,24 @@ function renderDonut() {
 }
 
 function renderReturnChart() {
+  // Dynamic: build from actual holdings
   const all = [
     // 基金
-    {l:'安聯科技',r:8.07,c:'#f0c05c'},{l:'台日雙星',r:-0.75,c:'#f05c5c'},
+    ...holdFunds.map(f => {
+      const ret = f.totalCost ? (((f.totalValue||f.totalCost)-f.totalCost)/f.totalCost*100) : 0;
+      return { l: f.name.length > 5 ? f.name.slice(0,5) : f.name, r: Math.round(ret*100)/100, c: ret>=0?'#f0c05c':'#f05c5c' };
+    }),
     // 台股
-    {l:'0050',r:93.88,c:'#7c6af7'},{l:'台積電',r:36.5,c:'#7c6af7'},
-    {l:'凱基T',r:14.06,c:'#7c6af7'},{l:'聯發科',r:20.02,c:'#7c6af7'},
-    {l:'凌航',r:6.97,c:'#7c6af7'},{l:'華懋',r:-8.82,c:'#f05c5c'},
+    ...[...holdTW,...waveTW].filter(t=>(t.shares||0)>0 && t.cost && t.price).map(s => {
+      const ret = (s.price-s.cost)/s.cost*100;
+      const lbl = s.name.length > 4 ? s.name.slice(0,4) : s.name;
+      return { l: lbl, r: Math.round(ret*100)/100, c: ret>=0?'#7c6af7':'#f05c5c' };
+    }),
     // 美股
-    {l:'TSLA',r:37.65,c:'#3ecf8e'},{l:'NVDA',r:24.81,c:'#3ecf8e'},
-    {l:'QQQ',r:24.66,c:'#5cb4f0'},{l:'TSM',r:19.63,c:'#3ecf8e'},
-    {l:'PLTR',r:3.23,c:'#3ecf8e'},
+    ...[...holdUS,...waveUS].filter(t=>(t.shares||0)>0 && t.cost && t.price).map(s => {
+      const ret = (s.price-s.cost)/s.cost*100;
+      return { l: s.code, r: Math.round(ret*100)/100, c: ret>=0?'#3ecf8e':'#f05c5c' };
+    }),
   ].sort((a,b)=>b.r-a.r);
   const max = Math.max(...all.map(d=>Math.abs(d.r)));
   const container = document.getElementById('returnChart');
@@ -1954,6 +2029,7 @@ async function fetchLivePrices() {
     renderWaveTable(waveUS, 'waveUsTable', false);
     renderWaveTable(waveTW, 'waveTwTable', true);
     renderSummaryStrip();
+    renderActionGrid();
     renderDonut();
     renderReturnChart();
     renderUnrealized();
