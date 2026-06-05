@@ -8,6 +8,7 @@
     { "src": "/api/prices", "dest": "/api/prices.js" },
     { "src": "/api/analyze", "dest": "/api/analyze.js" },
     { "src": "/api/debug", "dest": "/api/debug.js" },
+    { "src": "/api/deploy", "dest": "/api/deploy.js" },
     { "src": "/(.*)", "dest": "/public/$1" }
   ]
 }

@@ -584,6 +584,7 @@ main { padding:2rem 2.5rem; max-width:1440px; margin:0 auto; }
   </div>
   <div class="header-right">
     <button class="import-btn" onclick="openImport()">📂 匯入 CSV</button>
+    <button class="import-btn" id="deployBtn" onclick="deployUpdate()" style="border-color:rgba(45,212,160,.4);background:rgba(45,212,160,.08);color:var(--green)">🚀 部署更新</button>
     <div class="update-time">
       資料更新
       <b id="updateTime">—</b>
@@ -2836,6 +2837,48 @@ function switchMobileTab(tab, btn) {
 
   // Scroll to top smoothly
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
+
+<script>
+// ── DEPLOY ──
+async function deployUpdate() {
+  const btn = document.getElementById('deployBtn');
+  const orig = btn.textContent;
+  btn.textContent = '⏳ 部署中...';
+  btn.disabled = true;
+  btn.style.opacity = '.6';
+
+  try {
+    const html = document.documentElement.outerHTML;
+    const res = await fetch('/api/deploy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ html }),
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      btn.textContent = '✅ 已部署';
+      btn.style.color = 'var(--green)';
+      // Show toast
+      const t = document.createElement('div');
+      t.innerHTML = `✓ 已推送到 GitHub（commit: ${data.commit}）<br><span style="font-size:.6rem;opacity:.8">Vercel 正在重新部署，約 30 秒後生效</span>`;
+      t.style.cssText = 'position:fixed;bottom:5rem;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--green);border-radius:8px;padding:.75rem 1.5rem;font-family:var(--mono);font-size:.7rem;color:var(--green);z-index:9999;text-align:center;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.3)';
+      document.body.appendChild(t);
+      setTimeout(() => t.remove(), 5000);
+      setTimeout(() => { btn.textContent = orig; btn.disabled = false; btn.style.opacity = '1'; }, 3000);
+    } else {
+      throw new Error(data.error || '部署失敗');
+    }
+  } catch(e) {
+    btn.textContent = '❌ 失敗';
+    btn.style.color = 'var(--red)';
+    alert('部署失敗：' + e.message + '
+
+請確認 Vercel 環境變數 GITHUB_TOKEN 已設定。');
+    setTimeout(() => { btn.textContent = orig; btn.disabled = false; btn.style.opacity = '1'; btn.style.color = 'var(--green)'; }, 3000);
+  }
 }
 </script>
 
