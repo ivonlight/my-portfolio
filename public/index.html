@@ -1236,7 +1236,15 @@ function renderWaveTable(stocks, tbodyId, isTW) {
     tr.innerHTML = `
       <td><span class="sname">${s.name}</span><span class="scode">${s.code}</span></td>
       <td style="font-family:var(--mono)">${fmt(s.cost,isTW)}</td>
-      <td style="font-family:var(--mono);font-size:.72rem;color:var(--muted)">${sharesStr}</td>
+      <td style="font-family:var(--mono);font-size:.72rem;color:var(--muted)">
+        <div>${sharesStr}</div>
+        ${s.firstSeen ? (() => {
+          const days = Math.floor((new Date() - new Date(s.firstSeen)) / 86400000);
+          const color = days > 60 ? 'var(--yellow)' : days > 30 ? 'var(--muted)' : 'var(--muted)';
+          const label = days === 0 ? '今天' : days + '天';
+          return `<div style="font-size:.58rem;color:${color};margin-top:.15rem">持有 ${label}</div>`;
+        })() : ''}
+      </td>
       <td style="text-align:right">
         <input class="price-input" type="number" id="winp-${s.code}" value="${s.price}" step="${isTW?1:0.01}"
           onchange="updateWave('${s.code}',${isTW})" onkeydown="if(event.key==='Enter')updateWave('${s.code}',${isTW})">
@@ -2428,23 +2436,25 @@ function confirmImport() {
       return Math.round(price * 0.92);  // -8%
     };
 
+    const today = new Date().toISOString().slice(0,10);
     const newWave = waveFromCSV.map(p => {
       const ex = waveTW.find(s => nameMatch(p.name, s.name) || p.code === s.code);
       const tp1 = ex?.tp1 || autoTP(p.price, p.cost);
       const sl  = ex?.sl  || autoSL(p.price, p.cost);
       return {
-        code:   ex?.code   || p.name,
-        name:   p.name,
-        cost:   p.cost,
-        price:  p.price,
-        shares: p.shares,
-        ret:    p.cost ? Math.round(((p.price-p.cost)/p.cost)*10000)/100 : 0,
+        code:      ex?.code    || p.name,
+        name:      p.name,
+        cost:      p.cost,
+        price:     p.price,
+        shares:    p.shares,
+        ret:       p.cost ? Math.round(((p.price-p.cost)/p.cost)*10000)/100 : 0,
         tp1,
-        tp2:    ex?.tp2    || Math.round(tp1 * 1.08) || null,
+        tp2:       ex?.tp2     || Math.round(tp1 * 1.08) || null,
         sl,
-        signal: ex?.signal || 'hold',
-        note:   ex?.note   || '',
-        isTW:   true,
+        signal:    ex?.signal  || 'hold',
+        note:      ex?.note    || '',
+        isTW:      true,
+        firstSeen: ex?.firstSeen || today, // track when first imported
       };
     });
     waveTW.length = 0;
@@ -2474,18 +2484,19 @@ function confirmImport() {
       const tp1us = ex?.tp1 || (p.price ? Math.round(p.price * 1.15 * 100)/100 : null);
       const slus  = ex?.sl  || (p.price ? Math.round(p.price * 0.92 * 100)/100 : null);
       return {
-        code:   p.code,
-        name:   p.name || ex?.name || p.code,
-        cost:   p.cost,
-        price:  p.price,
-        shares: p.shares,
-        ret:    p.cost ? Math.round(((p.price-p.cost)/p.cost)*10000)/100 : 0,
-        tp1:    tp1us,
-        tp2:    ex?.tp2 || (tp1us ? Math.round(tp1us * 1.08 * 100)/100 : null),
-        sl:     slus,
-        signal: ex?.signal || 'hold',
-        note:   ex?.note   || '',
-        isTW:   false,
+        code:      p.code,
+        name:      p.name || ex?.name || p.code,
+        cost:      p.cost,
+        price:     p.price,
+        shares:    p.shares,
+        ret:       p.cost ? Math.round(((p.price-p.cost)/p.cost)*10000)/100 : 0,
+        tp1:       tp1us,
+        tp2:       ex?.tp2 || (tp1us ? Math.round(tp1us * 1.08 * 100)/100 : null),
+        sl:        slus,
+        signal:    ex?.signal || 'hold',
+        note:      ex?.note   || '',
+        isTW:      false,
+        firstSeen: ex?.firstSeen || today,
       };
     });
     waveUS.length = 0;
