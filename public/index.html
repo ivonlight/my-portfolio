@@ -303,6 +303,15 @@ main { padding:2rem 2.5rem; max-width:1440px; margin:0 auto; }
 @keyframes spin { to{transform:rotate(360deg)} }
 .spinner { display:inline-block; width:10px; height:10px; border:2px solid rgba(124,106,247,.3); border-top-color:var(--accent); border-radius:50%; animation:spin .6s linear infinite; }
 
+/* ── BENCHMARK ── */
+.bench-row { display:flex; align-items:center; gap:.6rem; margin-bottom:.45rem; }
+.bench-label { font-family:var(--mono); font-size:.58rem; color:var(--muted); width:80px; flex-shrink:0; }
+.bench-bars { flex:1; display:flex; flex-direction:column; gap:.25rem; }
+.bench-bar-wrap { display:flex; align-items:center; gap:.5rem; }
+.bench-bar-outer { flex:1; height:16px; background:var(--surface2); border-radius:3px; overflow:hidden; }
+.bench-bar-inner { height:100%; border-radius:3px; display:flex; align-items:center; padding-left:.4rem; font-family:var(--mono); font-size:.58rem; font-weight:600; transition:width 1s cubic-bezier(.16,1,.3,1); min-width:3rem; white-space:nowrap; }
+.bench-vs { font-family:var(--mono); font-size:.62rem; flex-shrink:0; width:90px; text-align:right; }
+
 /* ── IMPORT MODAL ── */
 #importModal {
   display:none; position:fixed; inset:0; z-index:9990;
@@ -607,7 +616,16 @@ main { padding:2rem 2.5rem; max-width:1440px; margin:0 auto; }
 
   <div class="summary-strip" id="summaryStrip"></div>
 
-    <!-- 現金配置 -->
+    <!-- 績效基準比較 -->
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.25rem 1.5rem;margin-bottom:1.5rem;animation:fadeUp .4s ease both" id="benchmarkPanel">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem">
+      <div style="font-family:var(--mono);font-size:.58rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)">績效 vs 大盤基準（今年初至今）</div>
+      <div style="font-family:var(--mono);font-size:.6rem;color:var(--muted)" id="benchUpdateTime">—</div>
+    </div>
+    <div id="benchmarkContent"></div>
+  </div>
+
+  <!-- 現金配置 -->
   <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.25rem 1.5rem;margin-bottom:1.5rem;animation:fadeUp .4s ease both">
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem">
       <div>
@@ -1556,6 +1574,112 @@ function renderActionGrid() {
     </div>`).join('');
 }
 
+function renderBenchmark() {
+  const el = document.getElementById('benchmarkContent');
+  if (!el) return;
+
+  const fx = getUSDTWD() || 31.5;
+
+  // Your portfolio YTD returns (using actual holdings)
+  // TW portfolio: wave stocks only (holding since this year)
+  const twWave = waveTW.filter(t => (t.shares||0) > 0 && t.cost && t.price);
+  const twWaveVal  = twWave.reduce((s,t) => s + t.price  * t.shares, 0);
+  const twWaveCost = twWave.reduce((s,t) => s + t.cost   * t.shares, 0);
+  const twWaveRet  = twWaveCost > 0 ? (twWaveVal - twWaveCost) / twWaveCost * 100 : 0;
+
+  // US portfolio YTD (wave + hold)
+  const usAll = [...holdUS, ...waveUS].filter(t => (t.shares||0) > 0 && t.cost && t.price);
+  const usVal  = usAll.reduce((s,t) => s + t.price * t.shares, 0);
+  const usCost = usAll.reduce((s,t) => s + t.cost  * t.shares, 0);
+  const usRet  = usCost > 0 ? (usVal - usCost) / usCost * 100 : 0;
+
+  // Benchmarks (fetched from API, fallback to last known)
+  const bench0050 = window._bench0050 || 58.5;  // 0050 YTD
+  const benchQQQ  = window._benchQQQ  || 21.1;  // QQQ YTD
+
+  // Alpha = your return - benchmark
+  const twAlpha = twWaveRet - bench0050;
+  const usAlpha = usRet     - benchQQQ;
+
+  const alphaColor = (a) => a >= 0 ? 'var(--green)' : 'var(--red)';
+  const alphaSign  = (a) => a >= 0 ? '+' : '';
+  const fmtPct = (n) => (n >= 0 ? '+' : '') + n.toFixed(1) + '%';
+
+  // Scale bars to max value
+  const maxVal = Math.max(Math.abs(twWaveRet), bench0050, Math.abs(usRet), benchQQQ, 1);
+
+  const rows = [
+    {
+      label: '台股波段',
+      yours: twWaveRet,
+      bench: bench0050,
+      benchName: '0050 YTD',
+      yourColor: twWaveRet >= 0 ? '#7c6af7' : 'var(--red)',
+      benchColor: '#5cb4f0',
+    },
+    {
+      label: '美股組合',
+      yours: usRet,
+      bench: benchQQQ,
+      benchName: 'QQQ YTD',
+      yourColor: usRet >= 0 ? '#3ecf8e' : 'var(--red)',
+      benchColor: '#5cb4f0',
+    },
+  ];
+
+  el.innerHTML = rows.map(row => {
+    const alpha = row.yours - row.bench;
+    const yourW = Math.min(Math.abs(row.yours) / maxVal * 100, 100);
+    const benchW = Math.min(row.bench / maxVal * 100, 100);
+    return `
+      <div class="bench-row" style="margin-bottom:.85rem">
+        <div class="bench-label">${row.label}</div>
+        <div class="bench-bars">
+          <div class="bench-bar-wrap">
+            <div style="font-family:var(--mono);font-size:.55rem;color:var(--muted);width:60px;text-align:right;flex-shrink:0">我的組合</div>
+            <div class="bench-bar-outer" style="flex:1">
+              <div class="bench-bar-inner" style="width:0%;background:${row.yourColor};color:#fff" data-w="${yourW}">
+                ${fmtPct(row.yours)}
+              </div>
+            </div>
+          </div>
+          <div class="bench-bar-wrap">
+            <div style="font-family:var(--mono);font-size:.55rem;color:var(--muted);width:60px;text-align:right;flex-shrink:0">${row.benchName}</div>
+            <div class="bench-bar-outer" style="flex:1">
+              <div class="bench-bar-inner" style="width:0%;background:${row.benchColor};color:#07080f" data-w="${benchW}">
+                ${fmtPct(row.bench)}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="bench-vs" style="color:${alphaColor(alpha)}">
+          Alpha<br><strong>${alphaSign(alpha)}${alpha.toFixed(1)}%</strong>
+        </div>
+      </div>`;
+  }).join('');
+
+  // Animate bars
+  setTimeout(() => {
+    el.querySelectorAll('.bench-bar-inner').forEach(b => { b.style.width = b.dataset.w + '%'; });
+  }, 100);
+
+  // Alpha summary
+  const twMsg = twAlpha >= 0
+    ? `台股波段跑贏 0050 ${alphaSign(twAlpha)}${twAlpha.toFixed(1)}%，選股有創造超額報酬`
+    : `台股波段跑輸 0050 ${twAlpha.toFixed(1)}%，直接買 0050 報酬更好`;
+  const usMsg = usAlpha >= 0
+    ? `美股組合跑贏 QQQ ${alphaSign(usAlpha)}${usAlpha.toFixed(1)}%，選股有效`
+    : `美股組合跑輸 QQQ ${usAlpha.toFixed(1)}%，直接買 QQQ 報酬更好`;
+
+  el.innerHTML += `
+    <div style="font-family:var(--mono);font-size:.65rem;line-height:1.7;padding:.75rem 1rem;background:var(--surface2);border-radius:8px;border-left:3px solid ${alphaColor(twAlpha + usAlpha)}">
+      <div>${twMsg}</div>
+      <div style="margin-top:.2rem">${usMsg}</div>
+    </div>`;
+
+  document.getElementById('benchUpdateTime').textContent = '基準：0050 YTD ' + fmtPct(bench0050) + ' · QQQ YTD ' + fmtPct(benchQQQ);
+}
+
 function renderSummaryStrip() {
   const strip = document.getElementById('summaryStrip');
   if (!strip) return;
@@ -2033,6 +2157,18 @@ async function fetchLivePrices() {
     const data = await res.json();
     livePrices = data.prices;
 
+    // Extract benchmark YTD from live prices
+    if (livePrices['0050.TW'] && livePrices['0050.TW'].price) {
+      // 0050 YTD: price vs Jan 1 open (~64.0 at 2026 start)
+      const bench0050Price = livePrices['0050.TW'].price;
+      window._bench0050 = ((bench0050Price - 64.0) / 64.0) * 100;
+    }
+    if (livePrices['QQQ'] && livePrices['QQQ'].price) {
+      // QQQ YTD: price vs Jan 1 open (~$521 at 2026 start)
+      const benchQQQPrice = livePrices['QQQ'].price;
+      window._benchQQQ = ((benchQQQPrice - 514.0) / 514.0) * 100;
+    }
+
     // Extract USD/TWD exchange rate
     if (livePrices['TWD=X'] && livePrices['TWD=X'].price) {
       window.USD_TWD = livePrices['TWD=X'].price;
@@ -2084,6 +2220,7 @@ async function fetchLivePrices() {
     renderWaveTable(waveUS, 'waveUsTable', false);
     renderWaveTable(waveTW, 'waveTwTable', true);
     renderSummaryStrip();
+    renderBenchmark();
     renderActionGrid();
     renderDonut();
     renderReturnChart();
