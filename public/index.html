@@ -1108,6 +1108,43 @@ function updateFund(code) {
 }
 
 // Load saved fund values and costs on startup
+// ── EDIT TP/SL ──
+function editTPSL(code, isTW) {
+  const s = [...waveTW, ...waveUS].find(x => x.code === code);
+  if (!s) return;
+  const unit = isTW ? 'NT$' : '$';
+  const tp1 = prompt(s.name + ' 停利目標1（' + unit + '）：', s.tp1 || '');
+  if (tp1 === null) return;
+  const tp2 = prompt(s.name + ' 停利目標2（' + unit + '，可空白）：', s.tp2 || '');
+  if (tp2 === null) return;
+  const sl  = prompt(s.name + ' 停損線（' + unit + '）：', s.sl || '');
+  if (sl === null) return;
+  if (tp1) { s.tp1 = parseFloat(tp1); s._manualTP = true; }
+  if (tp2) { s.tp2 = parseFloat(tp2); }
+  if (sl)  { s.sl  = parseFloat(sl);  s._manualSL = true; }
+  try {
+    const saved = JSON.parse(localStorage.getItem('manual_tpsl') || '{}');
+    saved[code] = { tp1: s.tp1, tp2: s.tp2, sl: s.sl };
+    localStorage.setItem('manual_tpsl', JSON.stringify(saved));
+  } catch(e) {}
+  renderWaveTable(waveUS, 'waveUsTable', false);
+  renderWaveTable(waveTW, 'waveTwTable', true);
+}
+
+// Load saved manual TP/SL
+(function loadManualTPSL() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('manual_tpsl') || '{}');
+    [...waveTW, ...waveUS].forEach(s => {
+      if (saved[s.code]) {
+        if (saved[s.code].tp1 != null) { s.tp1 = saved[s.code].tp1; s._manualTP = true; }
+        if (saved[s.code].tp2 != null)   s.tp2 = saved[s.code].tp2;
+        if (saved[s.code].sl  != null) { s.sl  = saved[s.code].sl;  s._manualSL = true; }
+      }
+    });
+  } catch(e) {}
+})();
+
 (function loadFundValues() {
   try {
     const savedVals = JSON.parse(localStorage.getItem('fund_values') || '{}');
@@ -1189,8 +1226,11 @@ function renderWaveTable(stocks, tbodyId, isTW) {
       <td id="wret-${s.code}">
         <div class="ret-wrap">${pctColor(s.ret)}${retBar(s.ret)}</div>
       </td>
-      <td style="color:var(--green)">${fmt(s.tp1,isTW)}</td>
-      <td style="color:var(--red)">${fmt(s.sl,isTW)}</td>
+      <td style="color:var(--green);font-family:var(--mono)">
+        <div>${fmt(s.tp1,isTW)}</div>
+        ${s.tp2?`<div style="font-size:.65rem;opacity:.7">${fmt(s.tp2,isTW)}</div>`:''}
+      </td>
+      <td style="color:var(--red);font-family:var(--mono)">${fmt(s.sl,isTW)}</td>
       <td>
         <div class="buy-zone">
           <div class="bz-row"><span class="bz-dot" style="background:var(--green)"></span>停利 ${fmt(s.tp1,isTW)}${s.tp2?' / '+fmt(s.tp2,isTW):''}</div>
@@ -2013,6 +2053,21 @@ async function fetchLivePrices() {
       s.w52High = lp.w52High; s.w52Low = lp.w52Low; s.w52Position = lp.w52Position;
       s.ma50 = lp.ma50; s.ma200 = lp.ma200; s.maSignal = lp.maSignal; s.techSignal = lp.techSignal;
       s.pe = lp.pe; s.fwPe = lp.fwPe; s.pb = lp.pb; s.roe = lp.roe;
+
+      // Refine TP/SL using 52-week data (only for wave stocks, only if not manually set)
+      const isWave = [...waveTW, ...waveUS].includes(s);
+      if (isWave && lp.w52High && lp.w52Low && lp.price) {
+        const isTW = s.isTW !== false && !s.code?.match(/^[A-Z]/);
+        const round = isTW ? (n => Math.round(n)) : (n => Math.round(n*100)/100);
+        // TP: 52週高點 × 0.95（壓力位稍下方）
+        const tp52 = round(lp.w52High * 0.95);
+        // SL: max(現價×0.92, 52週低點×1.05)
+        const sl52 = round(Math.max(lp.price * 0.92, lp.w52Low * 1.05));
+        // Only update if current tp1/sl seems like auto-calculated (not manually set)
+        if (!s._manualTP) s.tp1 = tp52;
+        if (!s._manualSL) s.sl  = sl52;
+        if (!s._manualTP) s.tp2 = round(lp.w52High * 1.02); // 微突破高點
+      }
     });
 
     // Re-render tables with live prices
@@ -2227,8 +2282,19 @@ function confirmImport() {
     const waveFromCSV = izParsed.tw.filter(p =>
       !holdTW.some(s => nameMatch(p.name, s.name) || p.code === s.code)
     );
+    const autoTP = (price, cost) => {
+      if (!price) return null;
+      return Math.round(price * 1.15);  // +15%
+    };
+    const autoSL = (price, cost) => {
+      if (!price) return null;
+      return Math.round(price * 0.92);  // -8%
+    };
+
     const newWave = waveFromCSV.map(p => {
       const ex = waveTW.find(s => nameMatch(p.name, s.name) || p.code === s.code);
+      const tp1 = ex?.tp1 || autoTP(p.price, p.cost);
+      const sl  = ex?.sl  || autoSL(p.price, p.cost);
       return {
         code:   ex?.code   || p.name,
         name:   p.name,
@@ -2236,9 +2302,9 @@ function confirmImport() {
         price:  p.price,
         shares: p.shares,
         ret:    p.cost ? Math.round(((p.price-p.cost)/p.cost)*10000)/100 : 0,
-        tp1:    ex?.tp1    || null,
-        tp2:    ex?.tp2    || null,
-        sl:     ex?.sl     || null,
+        tp1,
+        tp2:    ex?.tp2    || Math.round(tp1 * 1.08) || null,
+        sl,
         signal: ex?.signal || 'hold',
         note:   ex?.note   || '',
         isTW:   true,
@@ -2268,6 +2334,8 @@ function confirmImport() {
     );
     const newWaveUS = waveFromCSV.map(p => {
       const ex = waveUS.find(s => codeMatch(p.code, s.code));
+      const tp1us = ex?.tp1 || (p.price ? Math.round(p.price * 1.15 * 100)/100 : null);
+      const slus  = ex?.sl  || (p.price ? Math.round(p.price * 0.92 * 100)/100 : null);
       return {
         code:   p.code,
         name:   p.name || ex?.name || p.code,
@@ -2275,9 +2343,9 @@ function confirmImport() {
         price:  p.price,
         shares: p.shares,
         ret:    p.cost ? Math.round(((p.price-p.cost)/p.cost)*10000)/100 : 0,
-        tp1:    ex?.tp1    || null,
-        tp2:    ex?.tp2    || null,
-        sl:     ex?.sl     || null,
+        tp1:    tp1us,
+        tp2:    ex?.tp2 || (tp1us ? Math.round(tp1us * 1.08 * 100)/100 : null),
+        sl:     slus,
         signal: ex?.signal || 'hold',
         note:   ex?.note   || '',
         isTW:   false,
