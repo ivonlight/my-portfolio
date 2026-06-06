@@ -852,25 +852,25 @@ main { padding:2rem 2.5rem; max-width:1440px; margin:0 auto; }
 const holdUS = [
   {
     code:'BRK/B', name:'Berkshire Hathaway',
-    cost: 474.52, shares: 7.56973, // 加權均價：3股@$463.22 + 4.57股@$488.32
-    price: 479.98,
-    strongBuy: 440, buy: 460, fair: 480, rich: 510,
-    note:'巴菲特護城河。共7.57股，均價$474.52。跌至$460以下為理想加碼點。',
+    cost: 485.72, shares: 6.56973,
+    price: 488.81,
+    strongBuy: 450, buy: 470, fair: 490, rich: 520,
+    note:'巴菲特護城河。跌至$470以下為理想加碼點。',
     isTW: false
   },
   {
     code:'NVDA', name:'NVIDIA',
-    cost: 174.9, shares: 10.87, price: 219.51,
-    strongBuy: 165, buy: 185, fair: 220, rich: 260,
-    note:'AI核心持股，長期存股。跌至 $185 以下為理想加碼點。',
+    cost: 175.87, shares: 10.86983, price: 209.91,
+    strongBuy: 170, buy: 190, fair: 215, rich: 260,
+    note:'AI核心持股，長期存股。跌至 $190 以下為理想加碼點。',
     isTW: false
   },
   {
     code:'QQQ', name:'Invesco QQQ',
-    cost: 571.05, shares: 3.06421, // 加權均價：1股@$594.07 + 2.06股@$563.07
-    price: 714.51,
-    strongBuy: 620, buy: 660, fair: 720, rich: 760,
-    note:'共3.06股，均價$571.05。現價+25%偏高，等回調$660再加碼。',
+    cost: 573.19, shares: 3.06421,
+    price: 723.87,
+    strongBuy: 630, buy: 670, fair: 730, rich: 780,
+    note:'科技大盤ETF，長期存股。等回調$670以下加碼。',
     isTW: false
   }
 ];
@@ -878,23 +878,23 @@ const holdUS = [
 const holdTW = [
   {
     code:'009816', name:'凱基台灣TOP50',
-    cost: 12.88, shares: 3225, price: 14.19,
-    strongBuy: 12, buy: 13, fair: 14.5, rich: 16,
-    note:'不配息ETF，省稅，長期取代0050加碼部位。跌至$13以下為理想加碼點。',
+    cost: 13.08, shares: 3525, price: 15.19,
+    strongBuy: 12, buy: 13.5, fair: 15.5, rich: 17,
+    note:'不配息ETF，省稅，長期取代0050加碼部位。跌至$13.5以下為理想加碼點。',
     isTW: true
   },
   {
     code:'0050', name:'元大台灣50',
-    cost: 50.1, shares: 3408, price: 97.3,
-    strongBuy: 88, buy: 92, fair: 98, rich: 108,
-    note:'現價接近合理偏高區。定期定額繼續，單筆加碼等回測 $92 以下。',
+    cost: 50.13, shares: 3408, price: 104.15,
+    strongBuy: 90, buy: 96, fair: 106, rich: 116,
+    note:'現價在合理區間。定期定額繼續，單筆加碼等回測 $96 以下。',
     isTW: true
   },
   {
     code:'2330', name:'台積電',
-    cost: 1645.85, shares: 62, price: 2255,
-    strongBuy: 1900, buy: 2050, fair: 2300, rich: 2600,
-    note:'現價在合理區間上緣。等回測 $2,050 以下再加碼，不宜追高。',
+    cost: 1686.79, shares: 66, price: 2365,
+    strongBuy: 2000, buy: 2150, fair: 2400, rich: 2700,
+    note:'現價在合理區間上緣。等回測 $2,150 以下再加碼，不宜追高。',
     isTW: true
   }
 ];
@@ -924,17 +924,19 @@ const holdFunds = [
 
 // 波段標的（均價已合併加權平均）
 const waveUS = [
-  { code:'TSLA', name:'Tesla',     cost:303.57, price:417.85, ret:37.65, tp1:450, tp2:500, sl:370, signal:'sell', shares:0.89042,  note:'獲利豐厚，可掛移動停利' },
-  { code:'PLTR', name:'Palantir',  cost:133.11, price:137.42, ret:3.23,  tp1:155, tp2:170, sl:125, signal:'hold', shares:1,        note:'倉位小，空間有限' },
-  { code:'TSM',  name:'TSMC ADR',  cost:340.34, price:407.15, ret:19.63, tp1:440, tp2:480, sl:370, signal:'warn', shares:0.29412,  note:'與台積電重疊，留意總曝險' },
+  { code:'FLKR', name:'Franklin South Korea ETF', cost:71.32,  price:60.03,  ret:-15.8, tp1:80,   tp2:90,  sl:57,   signal:'warn', shares:1,      note:'韓國ETF，留意停損', firstSeen:'2026-06-05' },
+  { code:'NOW',  name:'ServiceNow',               cost:130.15, price:115.05, ret:-11.6, tp1:160,  tp2:185, sl:110,  signal:'warn', shares:1,      note:'SaaS，留意停損', firstSeen:'2026-06-05' },
+  { code:'PLTR', name:'Palantir',                 cost:133.11, price:138.50, ret:4.0,   tp1:155,  tp2:170, sl:125,  signal:'hold', shares:1,      note:'AI數據分析', firstSeen:'2026-05-01' },
+  { code:'TSLA', name:'Tesla',                    cost:423.34, price:403.58, ret:-4.7,  tp1:480,  tp2:520, sl:380,  signal:'warn', shares:1,      note:'高波動，緊盯停損', firstSeen:'2026-06-05' },
 ];
 const waveTW = [
-  { code:'00981A', name:'主動統一台股增長', cost:26.77,  price:31.31,  ret:16.76,  tp1:32,   tp2:35,   sl:27,   signal:'hold', shares:685,  note:'主動ETF，關注淨值' },
-  { code:'2454',   name:'聯發科',       cost:3205,   price:3860,   ret:20.02,  tp1:4200, tp2:4500, sl:3500, signal:'sell', shares:0,    note:'AI族群動能強' },
-  { code:'3135',   name:'凌航',         cost:197,    price:219.5,  ret:11.02,   tp1:230,  tp2:250,  sl:195,  signal:'hold', shares:50,   note:'接近成本，停損設緊' },
-  { code:'5292',   name:'華懋',         cost:239.84, price:224.5,  ret:-6.74,  tp1:240,  tp2:null, sl:210,  signal:'stop', shares:44,   note:'⚠️ 唯一虧損' },
-  { code:'8033',   name:'雷虎',         cost:132,    price:138,    ret:4.18,   tp1:150,  tp2:165,  sl:128,  signal:'hold', shares:0,    note:'小倉位緊盯' },
-  { code:'00988A', name:'主動統一全球創新', cost:18.9, price:21.84, ret:14.21,  tp1:25,   tp2:null, sl:17,   signal:'hold', shares:10,   note:'小倉位' },
+  { code:'00981A', name:'主動統一台股增長', cost:27.26, price:30.81, ret:13.0,  tp1:33,   tp2:36,   sl:26,   signal:'hold', shares:782,  note:'主動ETF，關注淨值', firstSeen:'2026-05-26' },
+  { code:'2454',   name:'聯發科',          cost:4275,  price:4300,  ret:0.6,   tp1:4700, tp2:5000, sl:4000, signal:'hold', shares:2,    note:'AI族群動能強', firstSeen:'2026-06-05' },
+  { code:'2363',   name:'前鼎',            cost:223.5, price:226.5, ret:1.3,   tp1:260,  tp2:290,  sl:210,  signal:'hold', shares:50,   note:'', firstSeen:'2026-06-05' },
+  { code:'4956',   name:'台虹',            cost:153.0, price:140.5, ret:-8.2,  tp1:175,  tp2:195,  sl:142,  signal:'warn', shares:30,   note:'⚠️ 虧損留意', firstSeen:'2026-06-05' },
+  { code:'8104',   name:'南茂',            cost:98.0,  price:96.8,  ret:-1.2,  tp1:115,  tp2:130,  sl:92,   signal:'hold', shares:50,   note:'', firstSeen:'2026-06-05' },
+  { code:'2327',   name:'國巨*',            cost:777.0, price:769.0, ret:-1.0,  tp1:900,  tp2:1000, sl:740,  signal:'hold', shares:5,    note:'', firstSeen:'2026-06-05' },
+  { code:'00988A', name:'主動統一全球創新', cost:18.9,  price:21.84, ret:15.6,  tp1:25,   tp2:null, sl:17,   signal:'hold', shares:10,   note:'小倉位', firstSeen:'2026-05-26' },
 ];
 
 // ─────────────────────────────────────────────
@@ -2130,7 +2132,8 @@ const yahooSymbolMap = {
   'PLTR'  : 'PLTR',
   'QQQ'   : 'QQQ',
   'TSLA'  : 'TSLA',
-  'TSM'   : 'TSM',
+  'FLKR'  : 'FLKR',
+  'NOW'   : 'NOW',
   // 台股
   '0050'  : '0050.TW',
   '009816': '009816.TW',
