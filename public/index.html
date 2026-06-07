@@ -1765,6 +1765,7 @@ function renderSummaryStrip() {
       <div class="s-label">台股損益 TWD</div>
       <div class="s-val ${cls(twPnl)}">${pSign(twPnl)}${fmtTW(twPnl)}</div>
       <div class="s-sub ${cls(twRet)}">${pSign(twRet)}${Math.abs(twRet).toFixed(2)}%　現值 ${fmtTW(twVal)}</div>
+      ${realTW !== 0 ? `<div style="font-family:var(--mono);font-size:.58rem;margin-top:.2rem;color:var(--muted)">已實現 <span class="${cls(realTW)}">${pSign(realTW)}${fmtTW(realTW)}</span></div>` : ''}
     </div>
     <div class="s-card ${cls(usPnl) === 'pos' ? 'g' : 'r'}" style="animation-delay:.2s">
       <div class="s-label">美股損益 USD</div>
@@ -2287,7 +2288,7 @@ document.getElementById('updateTime').textContent = '載入中...';
 
 // ── VERSION CHECK — auto-clear stale localStorage ──
 (function versionCheck() {
-  const CURRENT_VERSION = '202606070957';
+  const CURRENT_VERSION = '202606070958';
   const stored = localStorage.getItem('app_version');
   if (stored !== CURRENT_VERSION) {
     // New version deployed — clear stale snapshot so fresh data loads
@@ -2676,6 +2677,12 @@ document.addEventListener('click', e => {
 <script>
 // ── REALIZED P&L ──
 let realizedTrades = [];
+(function loadRealizedTrades() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('realized_trades') || '[]');
+    if (Array.isArray(saved)) realizedTrades = saved;
+  } catch(e) {}
+})();
 
 function loadRealizedCSV(e, market='tw') {
   const file = e.target.files[0];
