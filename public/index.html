@@ -1046,7 +1046,16 @@ function renderHoldTable(stocks, tbodyId) {
             style="width:110px">
         </td>
         <td id="fpnl-${s.code}" style="font-family:var(--mono)">${pnlDisplay}</td>
-        <td><span style="font-family:var(--mono);font-size:.65rem;color:var(--muted)">淨值日 ${s.navDate}</span></td>
+        <td><span style="font-family:var(--mono);font-size:.65rem;color:var(--muted)">淨值日 ${s.navDate}
+          ${(() => {
+            const saved = (() => { try { return JSON.parse(localStorage.getItem('fund_value_dates')||'{}'); } catch(e){return {};} })();
+            const lastDate = saved[s.code];
+            if (!lastDate) return '';
+            const days = Math.floor((new Date() - new Date(lastDate)) / 86400000);
+            const color = days >= 7 ? 'var(--red)' : days >= 3 ? 'var(--yellow)' : 'var(--muted)';
+            return '<br><span style="color:'+color+';font-size:.56rem">'+(days === 0 ? '今天更新' : days+'天前更新')+'</span>';
+          })()}
+        </span></td>
         <td id="fret-${s.code}">${retDisplay}</td>
         <td><span class="note-txt">${s.note}</span></td>`;
       tbody.appendChild(tr);
