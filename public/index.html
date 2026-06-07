@@ -1046,7 +1046,7 @@ function renderHoldTable(stocks, tbodyId) {
             style="width:110px">
         </td>
         <td id="fpnl-${s.code}" style="font-family:var(--mono)">${pnlDisplay}</td>
-        <td><span style="font-family:var(--mono);font-size:.65rem;color:var(--muted)">淨值日 ${s.navDate}</span></td>
+        <td><span style="font-family:var(--mono);font-size:.65rem;color:var(--muted)" id="fnavdate-${s.code}">淨值日 ${s.navDate}</span></td>
         <td id="fret-${s.code}">${retDisplay}</td>
         <td><span class="note-txt">${s.note}</span></td>`;
       tbody.appendChild(tr);
