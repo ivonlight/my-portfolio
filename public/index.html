@@ -2290,7 +2290,7 @@ document.getElementById('updateTime').textContent = '載入中...';
 
 // ── VERSION CHECK — auto-clear stale localStorage ──
 (function versionCheck() {
-  const CURRENT_VERSION = '202606070948';
+  const CURRENT_VERSION = '202606070950';
   const stored = localStorage.getItem('app_version');
   if (stored !== CURRENT_VERSION) {
     // New version deployed — clear stale snapshot so fresh data loads
@@ -2684,22 +2684,7 @@ let realizedTrades = [];
 (function loadRealizedTrades() {
   try {
     const saved = JSON.parse(localStorage.getItem('realized_trades') || '[]');
-    if (Array.isArray(saved) && saved.length > 0) {
-      realizedTrades = saved;
-    } else {
-      // Seed with data from last CSV import
-      realizedTrades = [
-        { name:'富強鑫', code:'富強鑫', market:'tw', currency:'TWD',
-          buyDate:'2026/05/29', sellDate:'2026/06/02',
-          shares:1000, buyPrice:26, sellPrice:23.7,
-          buyCost:26010, sellAmt:23620, pnl:-2390, ret:-9.19 },
-        { name:'Berkshire Hathaway', code:'BRK/B', market:'us', currency:'USD',
-          buyDate:'', sellDate:'2026/06/05',
-          shares:1, buyPrice:430.08, sellPrice:479.63,
-          buyCost:430.08, sellAmt:479.24, pnl:49.16, ret:11.43 },
-      ];
-      localStorage.setItem('realized_trades', JSON.stringify(realizedTrades));
-    }
+    if (Array.isArray(saved)) realizedTrades = saved;
   } catch(e) {}
 })();
 
