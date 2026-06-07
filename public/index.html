@@ -1777,6 +1777,7 @@ function renderSummaryStrip() {
       <div class="s-label">美股損益 USD</div>
       <div class="s-val ${cls(usPnl)}">${pSign(usPnl)}${fmtUS(usPnl)}</div>
       <div class="s-sub ${cls(usRet)}">${pSign(usRet)}${Math.abs(usRet).toFixed(2)}%　現值 ${fmtUS(usVal)}</div>
+      ${realUS !== 0 ? '<div style=\"font-family:var(--mono);font-size:.58rem;margin-top:.2rem;color:var(--muted)\">已實現 <span class=\"' + cls(realUS) + '\">' + (realUS>=0?'+':'-') + '$' + Math.abs(realUS).toFixed(2) + '</span></div>' : ''}
     </div>
 `;
 }
