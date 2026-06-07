@@ -4,10 +4,13 @@ module.exports = async function handler(req, res) {
   res.setHeader('Cache-Control', 's-maxage=120, stale-while-revalidate=600');
 
   const symbols = [
-    'BRK-B','NVDA','PLTR','QQQ','TSLA','TSM',
+    // 美股
+    'BRK-B','NVDA','PLTR','QQQ','TSLA','FLKR','NOW',
+    // 台股
     '0050.TW','2330.TW','009816.TW','00981A.TWO','00988A.TWO',
-    '2454.TW','3135.TW','5292.TW','8033.TW',
-    'TWD=X', // USD/TWD 即時匯率
+    '2454.TW','2363.TW','4956.TW','8104.TW','2327.TW',
+    // 匯率
+    'TWD=X',
   ];
 
   const results = {};
