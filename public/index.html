@@ -1046,16 +1046,7 @@ function renderHoldTable(stocks, tbodyId) {
             style="width:110px">
         </td>
         <td id="fpnl-${s.code}" style="font-family:var(--mono)">${pnlDisplay}</td>
-        <td><span style="font-family:var(--mono);font-size:.65rem;color:var(--muted)">淨值日 ${s.navDate}
-          ${(() => {
-            const saved = (() => { try { return JSON.parse(localStorage.getItem('fund_value_dates')||'{}'); } catch(e){return {};} })();
-            const lastDate = saved[s.code];
-            if (!lastDate) return '';
-            const days = Math.floor((new Date() - new Date(lastDate)) / 86400000);
-            const color = days >= 7 ? 'var(--red)' : days >= 3 ? 'var(--yellow)' : 'var(--muted)';
-            return '<br><span style="color:'+color+';font-size:.56rem">'+(days === 0 ? '今天更新' : days+'天前更新')+'</span>';
-          })()}
-        </span></td>
+        <td><span style="font-family:var(--mono);font-size:.65rem;color:var(--muted)">淨值日 ${s.navDate}</span></td>
         <td id="fret-${s.code}">${retDisplay}</td>
         <td><span class="note-txt">${s.note}</span></td>`;
       tbody.appendChild(tr);
@@ -1141,6 +1132,13 @@ function updateFund(code) {
   if (retEl) retEl.innerHTML = ret >= 0
     ? `<span class="pos">+${ret.toFixed(2)}%</span>`
     : `<span class="neg">${ret.toFixed(2)}%</span>`;
+  // Update navDate display to today
+  const today = new Date().toLocaleDateString('zh-TW', {year:'numeric',month:'2-digit',day:'2-digit'}).replace(/\//g,'/');
+  s.navDate = today;
+  // Update the navDate cell if visible
+  const navEl = document.getElementById('fnavdate-' + code);
+  if (navEl) navEl.textContent = '淨值日 ' + today;
+
   inp.classList.add('updated');
   setTimeout(() => inp.classList.remove('updated'), 600);
 }
@@ -2285,7 +2283,7 @@ document.getElementById('updateTime').textContent = '載入中...';
 
 // ── VERSION CHECK — auto-clear stale localStorage ──
 (function versionCheck() {
-  const CURRENT_VERSION = '202606071002';
+  const CURRENT_VERSION = '202606071004';
   const stored = localStorage.getItem('app_version');
   if (stored !== CURRENT_VERSION) {
     // New version deployed — clear stale snapshot so fresh data loads
