@@ -1038,18 +1038,7 @@ function renderHoldTable(stocks, tbodyId) {
             style="width:110px">
         </td>
         <td style="text-align:right">
-          <div style="font-family:var(--mono);font-size:.58rem;color:var(--muted);margin-bottom:.2rem">
-          輸入最新現值 (TWD)
-          ${(() => {
-            if (!s.totalValue || s.totalValue === s.totalCost) return '';
-            const saved = (() => { try { return JSON.parse(localStorage.getItem('fund_value_dates')||'{}'); } catch(e){return {};} })();
-            const lastDate = saved[s.code];
-            if (!lastDate) return '';
-            const days = Math.floor((new Date() - new Date(lastDate)) / 86400000);
-            const color = days >= 7 ? 'var(--red)' : days >= 3 ? 'var(--yellow)' : 'var(--muted)';
-            return '<span style="color:'+color+';margin-left:.5rem">'+(days === 0 ? '今天更新' : days+'天前更新')+'</span>';
-          })()}
-        </div>
+          <div style="font-family:var(--mono);font-size:.58rem;color:var(--muted);margin-bottom:.2rem">輸入最新現值 (TWD)</div>
           <input class="price-input" type="number" id="finp-${s.code}"
             value="${s.totalValue||''}" step="1"
             onchange="updateFund('${s.code}')"
@@ -2287,7 +2276,7 @@ document.getElementById('updateTime').textContent = '載入中...';
 
 // ── VERSION CHECK — auto-clear stale localStorage ──
 (function versionCheck() {
-  const CURRENT_VERSION = '202606070957';
+  const CURRENT_VERSION = '202606071002';
   const stored = localStorage.getItem('app_version');
   if (stored !== CURRENT_VERSION) {
     // New version deployed — clear stale snapshot so fresh data loads
