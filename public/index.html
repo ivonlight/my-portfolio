@@ -1375,6 +1375,12 @@ function updateCashAdvice() {
   const fx = getUSDTWD() || 31.5;
   const fmtTW = n => 'NT$' + Math.abs(Math.round(n)).toLocaleString('zh-TW');
 
+  // Realized P&L from localStorage
+  const _realized = (() => { try { return JSON.parse(localStorage.getItem('realized_trades') || '[]'); } catch(e) { return []; } })();
+  const thisYear = new Date().getFullYear().toString();
+  const realTW = _realized.filter(t => (t.sellDate||'').startsWith(thisYear) && t.market !== 'us').reduce((s,t) => s + (t.pnl||0), 0);
+  const realUS = _realized.filter(t => (t.sellDate||'').startsWith(thisYear) && t.market === 'us').reduce((s,t) => s + (t.pnl||0), 0);
+
   // ── 計算目前各類別現值 ──
   const twVal   = [...holdTW, ...waveTW].filter(t=>(t.shares||0)>0).reduce((s,t)=>s+(t.price||0)*(t.shares||0),0);
   const usValUSD= [...holdUS, ...waveUS].filter(t=>(t.shares||0)>0).reduce((s,t)=>s+(t.price||0)*(t.shares||0),0);
@@ -2288,7 +2294,7 @@ document.getElementById('updateTime').textContent = '載入中...';
 
 // ── VERSION CHECK — auto-clear stale localStorage ──
 (function versionCheck() {
-  const CURRENT_VERSION = '202606070958';
+  const CURRENT_VERSION = '202606070959';
   const stored = localStorage.getItem('app_version');
   if (stored !== CURRENT_VERSION) {
     // New version deployed — clear stale snapshot so fresh data loads
