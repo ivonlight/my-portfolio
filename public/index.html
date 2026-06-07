@@ -1375,12 +1375,6 @@ function updateCashAdvice() {
   const fx = getUSDTWD() || 31.5;
   const fmtTW = n => 'NT$' + Math.abs(Math.round(n)).toLocaleString('zh-TW');
 
-  // Realized P&L from localStorage
-  const _realized = (() => { try { return JSON.parse(localStorage.getItem('realized_trades') || '[]'); } catch(e) { return []; } })();
-  const thisYear = new Date().getFullYear().toString();
-  const realTW = _realized.filter(t => (t.sellDate||'').startsWith(thisYear) && t.market !== 'us').reduce((s,t) => s + (t.pnl||0), 0);
-  const realUS = _realized.filter(t => (t.sellDate||'').startsWith(thisYear) && t.market === 'us').reduce((s,t) => s + (t.pnl||0), 0);
-
   // ── 計算目前各類別現值 ──
   const twVal   = [...holdTW, ...waveTW].filter(t=>(t.shares||0)>0).reduce((s,t)=>s+(t.price||0)*(t.shares||0),0);
   const usValUSD= [...holdUS, ...waveUS].filter(t=>(t.shares||0)>0).reduce((s,t)=>s+(t.price||0)*(t.shares||0),0);
@@ -1771,13 +1765,11 @@ function renderSummaryStrip() {
       <div class="s-label">台股損益 TWD</div>
       <div class="s-val ${cls(twPnl)}">${pSign(twPnl)}${fmtTW(twPnl)}</div>
       <div class="s-sub ${cls(twRet)}">${pSign(twRet)}${Math.abs(twRet).toFixed(2)}%　現值 ${fmtTW(twVal)}</div>
-      ${realTW !== 0 ? `<div style="font-family:var(--mono);font-size:.58rem;margin-top:.2rem;color:var(--muted)">已實現 <span class="${cls(realTW)}">${pSign(realTW)}${fmtTW(realTW)}</span></div>` : ''}
     </div>
     <div class="s-card ${cls(usPnl) === 'pos' ? 'g' : 'r'}" style="animation-delay:.2s">
       <div class="s-label">美股損益 USD</div>
       <div class="s-val ${cls(usPnl)}">${pSign(usPnl)}${fmtUS(usPnl)}</div>
       <div class="s-sub ${cls(usRet)}">${pSign(usRet)}${Math.abs(usRet).toFixed(2)}%　現值 ${fmtUS(usVal)}</div>
-      ${realUS !== 0 ? '<div style=\"font-family:var(--mono);font-size:.58rem;margin-top:.2rem;color:var(--muted)\">已實現 <span class=\"' + cls(realUS) + '\">' + (realUS>=0?'+':'-') + '$' + Math.abs(realUS).toFixed(2) + '</span></div>' : ''}
     </div>
 `;
 }
@@ -2295,7 +2287,7 @@ document.getElementById('updateTime').textContent = '載入中...';
 
 // ── VERSION CHECK — auto-clear stale localStorage ──
 (function versionCheck() {
-  const CURRENT_VERSION = '202606070959';
+  const CURRENT_VERSION = '202606070957';
   const stored = localStorage.getItem('app_version');
   if (stored !== CURRENT_VERSION) {
     // New version deployed — clear stale snapshot so fresh data loads
@@ -2684,12 +2676,6 @@ document.addEventListener('click', e => {
 <script>
 // ── REALIZED P&L ──
 let realizedTrades = [];
-(function loadRealizedTrades() {
-  try {
-    const saved = JSON.parse(localStorage.getItem('realized_trades') || '[]');
-    if (Array.isArray(saved)) realizedTrades = saved;
-  } catch(e) {}
-})();
 
 function loadRealizedCSV(e, market='tw') {
   const file = e.target.files[0];
