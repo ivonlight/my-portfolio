@@ -1,124 +1,88 @@
-// api/prices.js — Yahoo Finance with crumb authentication
+// api/prices.js — 不依賴任何套件，直接用 fetch 打 Yahoo Finance
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Cache-Control', 's-maxage=120, stale-while-revalidate=600');
 
   const symbols = [
-    'BRK-B','NVDA','PLTR','QQQ','TSLA','FLKR','NOW',
+    'BRK-B','NVDA','PLTR','QQQ','TSLA','TSM',
     '0050.TW','2330.TW','009816.TW','00981A.TWO','00988A.TWO',
-    '2454.TW','2363.TW','4956.TW','8104.TW','2327.TW',
-    'TWD=X',
+    '2454.TW','3135.TW','5292.TW','8033.TW',
+    'TWD=X', // USD/TWD 即時匯率
   ];
 
   const results = {};
+  const errors = [];
 
-  // Step 1: Get cookie + crumb from Yahoo Finance
-  let cookie = '';
-  let crumb  = '';
-  try {
-    const cookieRes = await fetch('https://fc.yahoo.com', {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-        'Accept': '*/*',
-      },
-      redirect: 'follow',
-    });
-    const setCookie = cookieRes.headers.get('set-cookie') || '';
-    // Extract A3 cookie
-    const match = setCookie.match(/A3=[^;]+/);
-    if (match) cookie = match[0];
-
-    // Step 2: Get crumb
-    if (cookie) {
-      const crumbRes = await fetch('https://query1.finance.yahoo.com/v1/test/getcrumb', {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          'Cookie': cookie,
-          'Accept': '*/*',
-        },
-      });
-      crumb = await crumbRes.text();
-    }
-  } catch(e) {
-    console.error('Cookie/crumb error:', e.message);
-  }
-
-  const baseHeaders = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+  const headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
     'Accept': 'application/json',
     'Accept-Language': 'en-US,en;q=0.9',
-    'Referer': 'https://finance.yahoo.com',
-    ...(cookie ? { 'Cookie': cookie } : {}),
   };
 
-  // Step 3: Fetch prices for all symbols
-  await Promise.all(symbols.map(async (symbol) => {
-    try {
-      const crumbParam = crumb ? `&crumb=${encodeURIComponent(crumb)}` : '';
-      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1d&includePrePost=false${crumbParam}`;
-      const r = await fetch(url, { headers: baseHeaders });
-
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      const data = await r.json();
-      const meta = data?.chart?.result?.[0]?.meta;
-      if (!meta) throw new Error('No meta');
-
-      const price = meta.regularMarketPrice ?? meta.previousClose ?? null;
-      const w52High = meta.fiftyTwoWeekHigh ?? null;
-      const w52Low  = meta.fiftyTwoWeekLow  ?? null;
-
-      let w52Position = null;
-      if (w52High && w52Low && w52High !== w52Low && price) {
-        w52Position = Math.round((price - w52Low) / (w52High - w52Low) * 100);
-      }
-
-      results[symbol] = {
-        price,
-        change:      meta.regularMarketChangePercent ?? 0,
-        currency:    meta.currency,
-        marketState: meta.marketState,
-        w52High, w52Low, w52Position,
-        ma50: null, ma200: null, maSignal: null, techSignal: 'neutral',
-        pe: null, fwPe: null, pb: null, roe: null,
-      };
-    } catch(e) {
-      results[symbol] = { price: null, error: e.message };
-    }
-  }));
-
-  // Check if we got any prices
-  const gotPrices = Object.values(results).filter(r => r.price).length;
-
-  // If crumb approach failed, try v6 quote endpoint as fallback
-  if (gotPrices === 0) {
-    try {
-      const batchSymbols = symbols.join(',');
-      const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(batchSymbols)}&fields=regularMarketPrice,regularMarketChangePercent,fiftyTwoWeekHigh,fiftyTwoWeekLow`;
-      const r = await fetch(url, { headers: baseHeaders });
-      if (r.ok) {
+  await Promise.all(
+    symbols.map(async (symbol) => {
+      try {
+        // Yahoo Finance v8 chart API - most reliable
+        const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1d&includePrePost=false`;
+        const r = await fetch(url, { headers });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
         const data = await r.json();
-        const quotes = data?.quoteResponse?.result || [];
-        quotes.forEach(q => {
-          const price = q.regularMarketPrice;
-          const w52High = q.fiftyTwoWeekHigh;
-          const w52Low  = q.fiftyTwoWeekLow;
-          let w52Position = null;
-          if (w52High && w52Low && w52High !== w52Low && price) {
-            w52Position = Math.round((price - w52Low) / (w52High - w52Low) * 100);
-          }
-          results[q.symbol] = {
-            price, w52High, w52Low, w52Position,
-            change: q.regularMarketChangePercent ?? 0,
-            currency: q.currency, marketState: q.marketState,
-            ma50: null, ma200: null, maSignal: null, techSignal: 'neutral',
-            pe: null, fwPe: null, pb: null, roe: null,
-          };
-        });
-      }
-    } catch(e) {
-      console.error('Fallback error:', e.message);
-    }
-  }
+        const meta = data?.chart?.result?.[0]?.meta;
+        if (!meta) throw new Error('No meta');
 
-  res.status(200).json({ prices: results, crumbOk: !!crumb, gotPrices });
+        const price = meta.regularMarketPrice ?? meta.previousClose ?? null;
+
+        // 52週高低點從 v8 chart meta 取得（唯一可靠來源）
+        const w52High = meta.fiftyTwoWeekHigh ?? null;
+        const w52Low  = meta.fiftyTwoWeekLow  ?? null;
+        const ma50    = null; // Yahoo Finance 已鎖定此欄位
+        const ma200   = null;
+
+        let w52Position = null;
+        if (w52High && w52Low && w52High !== w52Low && price) {
+          w52Position = Math.round((price - w52Low) / (w52High - w52Low) * 100);
+        }
+
+        let maSignal = null;
+        if (price && ma50 && ma200) {
+          if      (price > ma50 && price > ma200 && ma50 > ma200) maSignal = 'strong_up';
+          else if (price > ma50 && price > ma200)                 maSignal = 'up';
+          else if (price < ma50 && price < ma200)                 maSignal = 'down';
+          else                                                    maSignal = 'mixed';
+        }
+
+        let techSignal = 'neutral';
+        if (w52Position !== null && price) {
+          if      (ma50 && w52Position <= 20 && price > ma50)  techSignal = 'buy';
+          else if (ma200 && w52Position <= 35 && price > ma200) techSignal = 'watch';
+          else if (w52Position >= 85)                           techSignal = 'overbought';
+          else if (ma50 && ma200 && price < ma50 && price < ma200) techSignal = 'weak';
+        }
+
+        const pe = null, fwPe = null, pb = null, roe = null;
+
+        results[symbol] = {
+          price,
+          change:      meta.regularMarketChangePercent ?? 0,
+          currency:    meta.currency,
+          marketState: meta.marketState,
+          w52High, w52Low, w52Position,
+          ma50, ma200, maSignal, techSignal,
+          pe:   pe   ? Math.round(pe   * 10)   / 10  : null,
+          fwPe: fwPe ? Math.round(fwPe * 10)   / 10  : null,
+          pb:   pb   ? Math.round(pb   * 100)  / 100  : null,
+          roe:  roe  ? Math.round(roe  * 1000) / 10   : null,
+        };
+      } catch (e) {
+        errors.push({ symbol, error: e.message });
+        results[symbol] = null;
+      }
+    })
+  );
+
+  res.status(200).json({
+    updated: new Date().toISOString(),
+    prices: results,
+    errors,
+  });
 };
