@@ -2181,7 +2181,7 @@ document.getElementById('updateTime').textContent = '載入中...';
 
 // ── VERSION CHECK — auto-clear stale localStorage ──
 (function versionCheck() {
-  const CURRENT_VERSION = '202606081002';
+  const CURRENT_VERSION = '202606081003';
   const stored = localStorage.getItem('app_version');
   if (stored !== CURRENT_VERSION) {
     // New version deployed — clear stale snapshot so fresh data loads
