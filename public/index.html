@@ -2167,7 +2167,7 @@ document.getElementById('updateTime').textContent = '載入中...';
 
 // ── VERSION CHECK — auto-clear stale localStorage ──
 (function versionCheck() {
-  const CURRENT_VERSION = '202606081016';
+  const CURRENT_VERSION = '202606081018';
   const stored = localStorage.getItem('app_version');
   if (stored !== CURRENT_VERSION) {
     // New version deployed — clear stale snapshot so fresh data loads
@@ -2666,7 +2666,8 @@ function clearRealized() {
   try { localStorage.removeItem('realized_trades'); } catch(e) {}
   document.getElementById('realizedSummary').style.display = 'none';
   document.getElementById('realizedEmpty').style.display = 'block';
-  document.getElementById('clearRealizedBtn').style.display = 'none';
+  const clearBtn = document.getElementById('clearRealizedBtn');
+  if (clearBtn) clearBtn.style.display = 'none';
 }
 
 function parseRDate(str) {
