@@ -2171,7 +2171,7 @@ document.getElementById('updateTime').textContent = '載入中...';
 
 // ── VERSION CHECK — auto-clear stale localStorage ──
 (function versionCheck() {
-  const CURRENT_VERSION = '202606081035';
+  const CURRENT_VERSION = '202606081038';
   const stored = localStorage.getItem('app_version');
   if (stored !== CURRENT_VERSION) {
     // New version deployed — clear stale snapshot so fresh data loads
@@ -2784,9 +2784,13 @@ function renderRealized() {
     const twPnl = sumPnl(p.tw), usPnl = sumPnl(p.us);
     const total = p.tw.length + p.us.length;
     const totalPnlTW = twPnl + usPnl * 31.5; // rough conversion for color
+    const twCost = p.tw.reduce((s,t)=>s+(t.buyCost||0),0);
+    const usCost = p.us.reduce((s,t)=>s+(t.buyCost||0),0);
+    const twRate = twCost>0 ? (twPnl/twCost*100).toFixed(1) : null;
+    const usRate = usCost>0 ? (usPnl/usCost*100).toFixed(1) : null;
     return `<div class="s-card ${totalPnlTW>=0?'g':'r'}" style="animation-delay:${i*.07}s">
       <div class="s-label">${p.label}損益</div>
-      ${p.tw.length ? `<div style="font-family:var(--mono);font-size:.78rem;font-weight:600" class="${twPnl>=0?'pos':'neg'}">${twPnl>=0?'+':'-'}NT$${Math.abs(Math.round(twPnl)).toLocaleString('zh-TW')}</div>` : ''}
+      ${p.tw.length ? `<div style="font-family:var(--mono);font-size:.78rem;font-weight:600" class="${twPnl>=0?'pos':'neg'}">${twPnl>=0?'+':'-'}NT$${Math.abs(Math.round(twPnl)).toLocaleString('zh-TW')}</div><div style="font-family:var(--mono);font-size:.62rem;color:var(--muted)">${twRate!==null?(twRate>=0?'+':'')+twRate+'%':''} 報酬率</div>` : ''}
       ${p.us.length ? `<div style="font-family:var(--mono);font-size:.78rem;font-weight:600;margin-top:.15rem" class="${usPnl>=0?'pos':'neg'}">${usPnl>=0?'+':'-'}$${Math.abs(usPnl).toFixed(2)} USD</div>` : ''}
       ${!p.tw.length && !p.us.length ? `<div class="s-val" style="color:var(--muted)">—</div>` : ''}
       <div class="s-sub" style="color:var(--muted);margin-top:.3rem">${total} 筆 ${p.us.length&&p.tw.length?'(台股+美股)':p.us.length?'(美股)':'(台股)'}</div>
