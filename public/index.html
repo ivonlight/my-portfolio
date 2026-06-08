@@ -556,7 +556,7 @@ main { padding:2rem 2.5rem; max-width:1440px; margin:0 auto; }
     <h1>投資組合監控儀表板</h1>
   </div>
   <div class="header-right">
-    <button class="import-btn" onclick="openImport()">📂 匯入 CSV</button>
+
     <div class="update-time">
       資料更新
       <b id="updateTime">—</b>
@@ -2179,7 +2179,7 @@ document.getElementById('updateTime').textContent = '載入中...';
 
 // ── VERSION CHECK — auto-clear stale localStorage ──
 (function versionCheck() {
-  const CURRENT_VERSION = '202606081013';
+  const CURRENT_VERSION = '202606081014';
   const stored = localStorage.getItem('app_version');
   if (stored !== CURRENT_VERSION) {
     // New version deployed — clear stale snapshot so fresh data loads
@@ -2541,29 +2541,7 @@ document.addEventListener('click', e => {
 
 
 
-<!-- Mobile Bottom Nav -->
-<div class="mobile-bottom-nav" id="mobileNav">
-  <button class="mbn-btn active" onclick="switchMobileTab('overview',this)">
-    <span class="mbn-icon">📊</span>
-    <span class="mbn-label">總覽</span>
-  </button>
-  <button class="mbn-btn" onclick="switchMobileTab('hold',this)">
-    <span class="mbn-icon">🏦</span>
-    <span class="mbn-label">存股</span>
-  </button>
-  <button class="mbn-btn" onclick="switchMobileTab('wave',this)">
-    <span class="mbn-icon">⚡</span>
-    <span class="mbn-label">波段</span>
-  </button>
-  <button class="mbn-btn" onclick="switchMobileTab('realized',this)">
-    <span class="mbn-icon">💰</span>
-    <span class="mbn-label">了結</span>
-  </button>
-  <button class="mbn-btn" onclick="switchMobileTab('ai',this)">
-    <span class="mbn-icon">🤖</span>
-    <span class="mbn-label">分析</span>
-  </button>
-</div>
+
 
 <script>
 // ── REALIZED P&L ──
