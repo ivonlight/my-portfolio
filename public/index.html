@@ -2171,7 +2171,7 @@ document.getElementById('updateTime').textContent = '載入中...';
 
 // ── VERSION CHECK — auto-clear stale localStorage ──
 (function versionCheck() {
-  const CURRENT_VERSION = '202606081028';
+  const CURRENT_VERSION = '202606081029';
   const stored = localStorage.getItem('app_version');
   if (stored !== CURRENT_VERSION) {
     // New version deployed — clear stale snapshot so fresh data loads
@@ -2225,6 +2225,9 @@ document.getElementById('updateTime').textContent = '載入中...';
 
 // Fetch live prices — handles all rendering
 fetchLivePrices();
+
+// Render realized trades after DOM is ready
+setTimeout(() => renderRealized(), 300);
 
 // Auto-refresh every 5 minutes
 setInterval(fetchLivePrices, 5 * 60 * 1000);
