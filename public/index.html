@@ -882,9 +882,9 @@ const holdFunds = [
   {
     code:'安聯台灣科技', name:'安聯台灣科技基金',
     cost: null, price: null, units: null,
-    totalCost: 74000,  // 本金 TWD（從App截圖 $87,000 * 安聯佔比）
-    totalValue: 79970, // 現值 TWD
-    ret: 8.07,
+    totalCost: 82000,
+    totalValue: 93130,
+    ret: 13.57,
     navDate: '2026/05/21',
     note:'主動型科技基金，單筆投入。定期檢視，不需特別擇時。',
     isTW: true, isFund: true
@@ -892,11 +892,11 @@ const holdFunds = [
   {
     code:'路博邁台日雙星', name:'路博邁台日雙星T',
     cost: null, price: null, units: null,
-    totalCost: 13000,
-    totalValue: 12902,
-    ret: -0.75,
+    totalCost: 8000,
+    totalValue: 8240,
+    ret: 3.00,
     navDate: '2026/05/20',
-    note:'台日主題，目前小虧−0.75%，短期震盪正常，繼續持有。',
+    note:'台日主題，短期震盪正常，繼續持有。',
     isTW: true, isFund: true
   }
 ];
@@ -2181,7 +2181,7 @@ document.getElementById('updateTime').textContent = '載入中...';
 
 // ── VERSION CHECK — auto-clear stale localStorage ──
 (function versionCheck() {
-  const CURRENT_VERSION = '202606081010';
+  const CURRENT_VERSION = '202606081011';
   const stored = localStorage.getItem('app_version');
   if (stored !== CURRENT_VERSION) {
     // New version deployed — clear stale snapshot so fresh data loads
