@@ -2171,7 +2171,7 @@ document.getElementById('updateTime').textContent = '載入中...';
 
 // ── VERSION CHECK — auto-clear stale localStorage ──
 (function versionCheck() {
-  const CURRENT_VERSION = '202606081031';
+  const CURRENT_VERSION = '202606081033';
   const stored = localStorage.getItem('app_version');
   if (stored !== CURRENT_VERSION) {
     // New version deployed — clear stale snapshot so fresh data loads
@@ -2702,6 +2702,33 @@ function renderRealized() {
   const twLossTotal = twLoss.reduce((s,t) => s+t.pnl, 0);
   const usWinTotal  = usWins.reduce((s,t) => s+t.pnl, 0);
   const usLossTotal = usLoss.reduce((s,t) => s+t.pnl, 0);
+
+  // Overall stats: cost, return, rate
+  const twCostTotal = yearTrades.filter(t=>t.market!=='us').reduce((s,t)=>s+(t.buyCost||0),0);
+  const twPnlTotal  = yearTrades.filter(t=>t.market!=='us').reduce((s,t)=>s+t.pnl,0);
+  const twRetRate   = twCostTotal > 0 ? twPnlTotal/twCostTotal*100 : 0;
+  const usCostTotal = yearTrades.filter(t=>t.market==='us').reduce((s,t)=>s+(t.buyCost||0),0);
+  const usPnlTotal  = yearTrades.filter(t=>t.market==='us').reduce((s,t)=>s+t.pnl,0);
+  const usRetRate   = usCostTotal > 0 ? usPnlTotal/usCostTotal*100 : 0;
+
+  // Update summary cards
+  const cardsEl = document.getElementById('realizedCards');
+  if (cardsEl) {
+    const fmtTW = n => (n>=0?'+':'-')+' NT$'+Math.abs(Math.round(n)).toLocaleString('zh-TW');
+    const fmtUS = n => (n>=0?'+':'-')+' $'+Math.abs(n).toFixed(2);
+    cardsEl.innerHTML = [
+      { label:'🇹🇼 台股投入成本', val:'NT$'+Math.round(twCostTotal).toLocaleString('zh-TW'), sub:'今年已實現部位', color:'var(--muted)' },
+      { label:'🇹🇼 台股已實現損益', val:fmtTW(twPnlTotal), sub:'報酬率 '+(twRetRate>=0?'+':'')+twRetRate.toFixed(2)+'%', color:twPnlTotal>=0?'var(--green)':'var(--red)' },
+      { label:'🇺🇸 美股投入成本', val:'$'+usCostTotal.toFixed(2), sub:'今年已實現部位', color:'var(--muted)' },
+      { label:'🇺🇸 美股已實現損益', val:fmtUS(usPnlTotal), sub:'報酬率 '+(usRetRate>=0?'+':'')+usRetRate.toFixed(2)+'%', color:usPnlTotal>=0?'var(--green)':'var(--red)' },
+    ].map(c =>
+      '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:1rem 1.1rem">'
+      + '<div style="font-family:var(--mono);font-size:.58rem;color:var(--muted);margin-bottom:.4rem">'+c.label+'</div>'
+      + '<div style="font-family:var(--mono);font-size:1rem;font-weight:700;color:'+c.color+'">'+c.val+'</div>'
+      + '<div style="font-family:var(--mono);font-size:.6rem;color:var(--muted);margin-top:.2rem">'+c.sub+'</div>'
+      + '</div>'
+    ).join('');
+  }
   const wlEl = document.getElementById('realizedWinLoss');
   if (wlEl) {
     wlEl.innerHTML = [
