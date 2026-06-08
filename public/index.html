@@ -1460,7 +1460,9 @@ function updateCashAdvice() {
   const concWarnings = [];
   const allStocks = [...holdTW,...waveTW,...holdUS,...waveUS].filter(t=>(t.shares||0)>0);
   allStocks.forEach(s => {
-    const val = s.market==='us'||!s.isTW ? (s.price||0)*(s.shares||0)*fx : (s.price||0)*(s.shares||0);
+    // US stocks: holdUS/waveUS items or code matches US pattern (no .TW suffix, not TW ETF codes)
+    const isUS = holdUS.includes(s) || waveUS.includes(s);
+    const val = isUS ? (s.price||0)*(s.shares||0)*fx : (s.price||0)*(s.shares||0);
     const pct = total ? val/total*100 : 0;
     if (pct > 30) concWarnings.push(`${s.name} 佔總資產 ${pct.toFixed(0)}%，集中度偏高`);
   });
@@ -2183,7 +2185,7 @@ document.getElementById('updateTime').textContent = '載入中...';
 
 // ── VERSION CHECK — auto-clear stale localStorage ──
 (function versionCheck() {
-  const CURRENT_VERSION = '202606080421';
+  const CURRENT_VERSION = '202606080423';
   const stored = localStorage.getItem('app_version');
   if (stored !== CURRENT_VERSION) {
     // New version deployed — clear stale snapshot so fresh data loads
