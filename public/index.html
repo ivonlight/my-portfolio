@@ -903,10 +903,10 @@ const holdFunds = [
 
 // 波段標的（均價已合併加權平均）
 const waveUS = [
-  { code:'FLKR', name:'Franklin South Korea ETF', cost:71.32,  price:60.03,  ret:-15.8, tp1:80,   tp2:90,  sl:57,   signal:'warn', shares:1,      note:'韓國ETF，留意停損', firstSeen:'2026-06-05' },
-  { code:'NOW',  name:'ServiceNow',               cost:130.15, price:115.05, ret:-11.6, tp1:160,  tp2:185, sl:110,  signal:'warn', shares:1,      note:'SaaS，留意停損', firstSeen:'2026-06-05' },
-  { code:'PLTR', name:'Palantir',                 cost:133.11, price:138.50, ret:4.0,   tp1:155,  tp2:170, sl:125,  signal:'hold', shares:1,      note:'AI數據分析', firstSeen:'2026-05-01' },
-  { code:'TSLA', name:'Tesla',                    cost:423.34, price:403.58, ret:-4.7,  tp1:480,  tp2:520, sl:380,  signal:'warn', shares:1,      note:'高波動，緊盯停損', firstSeen:'2026-06-05' },
+  { code:'FLKR', name:'Franklin South Korea ETF', cost:71.32, price:60.03, ret:-15.8, tp1:80, tp2:90, sl:57, signal:'warn', shares:1.0, note:'韓國ETF，留意停損', firstSeen:'2026-06-05' },
+  { code:'NOW',  name:'ServiceNow',               cost:130.15, price:115.05, ret:-11.6, tp1:160, tp2:185, sl:110, signal:'warn', shares:1.0, note:'SaaS，留意停損', firstSeen:'2026-06-05' },
+  { code:'PLTR', name:'Palantir',                 cost:133.11, price:138.5, ret:4.0, tp1:155, tp2:170, sl:125, signal:'hold', shares:1.0, note:'AI數據分析', firstSeen:'2026-05-01' },
+  { code:'TSLA', name:'Tesla',                    cost:423.34, price:403.58, ret:-4.7, tp1:480, tp2:520, sl:380, signal:'warn', shares:1.0, note:'高波動，緊盯停損', firstSeen:'2026-06-05' },
 ];
 const waveTW = [
   { code:'2454',   name:'聯發科',          cost:4193.33,price:4070, ret:-3.3,  tp1:4700, tp2:5000, sl:3900, signal:'warn', shares:3,    note:'AI族群動能強', firstSeen:'2026-06-05' },
@@ -2181,7 +2181,7 @@ document.getElementById('updateTime').textContent = '載入中...';
 
 // ── VERSION CHECK — auto-clear stale localStorage ──
 (function versionCheck() {
-  const CURRENT_VERSION = '202606081004';
+  const CURRENT_VERSION = '202606081010';
   const stored = localStorage.getItem('app_version');
   if (stored !== CURRENT_VERSION) {
     // New version deployed — clear stale snapshot so fresh data loads
@@ -2578,6 +2578,8 @@ let realizedTrades = [];
     const saved = JSON.parse(localStorage.getItem('realized_trades') || '[]');
     // Keep US trades from localStorage, replace TW trades with seed
     const usTrades = saved.filter(t => t.market === 'us');
+    const usSeeds = [{"name": "Berkshire Hathaway Inc", "code": "BRK/B", "market": "us", "currency": "USD", "buyDate": "", "sellDate": "2026/06/05", "shares": 1.0, "buyPrice": 430.08, "sellPrice": 479.63, "buyCost": 430.08, "sellAmt": 479.24, "pnl": 49.16, "ret": 11.43}];
+    usSeeds.forEach(u => { if (!usTrades.some(t => t.code===u.code && t.sellDate===u.sellDate)) usTrades.push(u); });
     const merged = [...seedData, ...usTrades];
     realizedTrades = merged;
     localStorage.setItem('realized_trades', JSON.stringify(realizedTrades));
