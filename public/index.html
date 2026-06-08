@@ -2171,7 +2171,7 @@ document.getElementById('updateTime').textContent = '載入中...';
 
 // ── VERSION CHECK — auto-clear stale localStorage ──
 (function versionCheck() {
-  const CURRENT_VERSION = '202606081038';
+  const CURRENT_VERSION = '202606081041';
   const stored = localStorage.getItem('app_version');
   if (stored !== CURRENT_VERSION) {
     // New version deployed — clear stale snapshot so fresh data loads
@@ -2733,11 +2733,18 @@ function renderRealized() {
   }
   const wlEl = document.getElementById('realizedWinLoss');
   if (wlEl) {
+    // Calculate costs for return rate
+    const twWinCost  = twWins.reduce((s,t)=>s+(t.buyCost||0),0);
+    const twLossCost = twLoss.reduce((s,t)=>s+(t.buyCost||0),0);
+    const usWinCost  = usWins.reduce((s,t)=>s+(t.buyCost||0),0);
+    const usLossCost = usLoss.reduce((s,t)=>s+(t.buyCost||0),0);
+    const rate = (pnl, cost) => cost > 0 ? (pnl/cost*100).toFixed(1)+'%' : null;
+
     wlEl.innerHTML = [
-      { label:'🇹🇼 台股獲利出場', val:twWinTotal,  cnt:twWins.length,  isTW:true,  pos:true  },
-      { label:'🇹🇼 台股停損出場', val:twLossTotal, cnt:twLoss.length,  isTW:true,  pos:false },
-      { label:'🇺🇸 美股獲利出場', val:usWinTotal,  cnt:usWins.length,  isTW:false, pos:true  },
-      { label:'🇺🇸 美股停損出場', val:usLossTotal, cnt:usLoss.length,  isTW:false, pos:false },
+      { label:'🇹🇼 台股獲利出場', val:twWinTotal,  rate:rate(twWinTotal,twWinCost),   cnt:twWins.length,  isTW:true,  pos:true  },
+      { label:'🇹🇼 台股停損出場', val:twLossTotal, rate:rate(twLossTotal,twLossCost),  cnt:twLoss.length,  isTW:true,  pos:false },
+      { label:'🇺🇸 美股獲利出場', val:usWinTotal,  rate:rate(usWinTotal,usWinCost),   cnt:usWins.length,  isTW:false, pos:true  },
+      { label:'🇺🇸 美股停損出場', val:usLossTotal, rate:rate(usLossTotal,usLossCost),  cnt:usLoss.length,  isTW:false, pos:false },
     ].map(item => {
       const fmtVal = item.isTW
         ? (item.val>=0?'+':'-')+' NT$'+Math.abs(Math.round(item.val)).toLocaleString('zh-TW')
@@ -2746,7 +2753,10 @@ function renderRealized() {
       const border = item.pos ? 'rgba(62,207,142,.2)' : 'rgba(240,92,92,.2)';
       return '<div style="background:var(--surface2);border:1px solid '+border+';border-radius:8px;padding:.75rem 1rem">'
         + '<div style="font-family:var(--mono);font-size:.58rem;color:var(--muted);margin-bottom:.3rem">'+item.label+'</div>'
+        + '<div style="display:flex;align-items:baseline;gap:.5rem">'
         + '<div style="font-family:var(--mono);font-size:.9rem;font-weight:600;color:'+color+'">'+fmtVal+'</div>'
+        + (item.rate ? '<div style="font-family:var(--mono);font-size:.65rem;font-weight:600;color:'+color+'">'+item.rate+'</div>' : '')
+        + '</div>'
         + '<div style="font-family:var(--mono);font-size:.58rem;color:var(--muted);margin-top:.15rem">'+item.cnt+' 筆</div>'
         + '</div>';
     }).join('');
