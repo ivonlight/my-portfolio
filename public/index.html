@@ -828,6 +828,26 @@ main { padding:2rem 2.5rem; max-width:1440px; margin:0 auto; }
 </main>
 
 <script>
+// ── 觀察清單（未持有，候選買進）──
+const watchlistUS = [
+  { code:'LLY',  name:'Eli Lilly',    score:7.9 },
+  { code:'GOOG', name:'Alphabet',      score:7.4 },
+  { code:'AMZN', name:'Amazon',        score:7.2 },
+  { code:'AAPL', name:'Apple',         score:7.2 },
+  { code:'MRVL', name:'Marvell',       score:7.1 },
+  { code:'META', name:'Meta',          score:7.1 },
+  { code:'MSFT', name:'Microsoft',     score:7.1 },
+  { code:'GLW',  name:'Corning',       score:7.0 },
+  { code:'AVGO', name:'Broadcom',      score:7.0 },
+  { code:'ORCL', name:'Oracle',        score:6.9 },
+  { code:'VRT',  name:'Vertiv',        score:6.9 },
+  { code:'GEV',  name:'GE Vernova',    score:6.8 },
+];
+const watchlistTW = [
+  { code:'5292', name:'華懋',   note:'長期目標' },
+  { code:'2301', name:'光寶電', note:'長期目標' },
+];
+
 // ─────────────────────────────────────────────
 // DATA
 // ─────────────────────────────────────────────
@@ -1370,37 +1390,69 @@ function updateCashAdvice() {
   // ── 積極型目標配置 ──
   const TARGET = { tw:0.40, us:0.45, fund:0.15 };
 
-  // ── 第一層：找到有買進訊號的標的 ──
+  // ── 第一層：找到有買進訊號的標的（含觀察清單）──
   const buySignals = [];
 
-  // TW stocks with buy signal or low 52-week position
+  // 已持有台股
   [...holdTW, ...waveTW].filter(t=>(t.shares||0)>0).forEach(s => {
     const hasBuyPrice = s.buy && s.price && s.price <= s.buy;
     const lowPos = s.w52Position != null && s.w52Position <= 30;
     const highPos = s.w52Position != null && s.w52Position >= 75;
     if (hasBuyPrice || lowPos) {
       buySignals.push({
-        name: s.name, market: 'tw',
-        reason: hasBuyPrice ? `現價低於買進區間（買進價 NT$${s.buy}）` : `52週低位 ${s.w52Position}%，具安全邊際`,
-        priority: (hasBuyPrice ? 2 : 0) + (lowPos ? 2 : 0),
+        name: s.name, market: 'tw', holding: true,
+        reason: hasBuyPrice ? `現價低於買進區間（NT$${s.buy}）` : `52週低位 ${s.w52Position}%`,
+        priority: (hasBuyPrice ? 2 : 0) + (lowPos ? 2 : 0) + 1,
         w52: s.w52Position,
-        skip: highPos,
       });
     }
   });
 
-  // US stocks
+  // 已持有美股
   [...holdUS, ...waveUS].filter(t=>(t.shares||0)>0).forEach(s => {
     const hasBuyPrice = s.buy && s.price && s.price <= s.buy;
     const lowPos = s.w52Position != null && s.w52Position <= 30;
     const highPos = s.w52Position != null && s.w52Position >= 75;
     if (hasBuyPrice || lowPos) {
       buySignals.push({
-        name: s.name, market: 'us',
+        name: s.name, market: 'us', holding: true,
         reason: hasBuyPrice ? `現價低於買進區間（$${s.buy}）` : `52週低位 ${s.w52Position}%`,
-        priority: (hasBuyPrice ? 2 : 0) + (lowPos ? 2 : 0),
+        priority: (hasBuyPrice ? 2 : 0) + (lowPos ? 2 : 0) + 1,
         w52: s.w52Position,
-        skip: highPos,
+      });
+    }
+  });
+
+  // 觀察清單美股（未持有）
+  watchlistUS.forEach(s => {
+    const lp = livePrices && livePrices[s.code];
+    if (!lp || !lp.price) return;
+    s.price = lp.price;
+    s.w52Position = lp.w52Position;
+    const lowPos = lp.w52Position != null && lp.w52Position <= 30;
+    if (lowPos) {
+      buySignals.push({
+        name: s.name + ' ★', market: 'us', holding: false,
+        reason: `觀察清單，52週低位 ${lp.w52Position}%，策略評分 ${s.score}`,
+        priority: s.score / 10 + (lp.w52Position <= 20 ? 1 : 0),
+        w52: lp.w52Position,
+      });
+    }
+  });
+
+  // 觀察清單台股（未持有）
+  watchlistTW.forEach(s => {
+    const lp = livePrices && livePrices[s.code + '.TW'];
+    if (!lp || !lp.price) return;
+    s.price = lp.price;
+    s.w52Position = lp.w52Position;
+    const lowPos = lp.w52Position != null && lp.w52Position <= 30;
+    if (lowPos) {
+      buySignals.push({
+        name: s.name + ' ★', market: 'tw', holding: false,
+        reason: `觀察清單，52週低位 ${lp.w52Position}%，${s.note}`,
+        priority: 0.5 + (lp.w52Position <= 20 ? 1 : 0),
+        w52: lp.w52Position,
       });
     }
   });
@@ -1464,8 +1516,12 @@ function updateCashAdvice() {
   const twBuyTarget = buySignals.filter(s=>s.market==='tw')[0];
   const usBuyTarget = buySignals.filter(s=>s.market==='us')[0];
 
-  const twSuggest  = twBuyTarget  ? `${twBuyTarget.name}（${twBuyTarget.reason}）`  : (twPct < TARGET.tw ? '0050 或 009816 分批加碼' : '目前台股無明顯買點，等待');
-  const usSuggest  = usBuyTarget  ? `${usBuyTarget.name}（${usBuyTarget.reason}）`  : (usPct < TARGET.us ? 'QQQ 或 BRK/B 分批加碼'   : '目前美股無明顯買點，等待');
+  const twSuggest = twBuyTarget
+    ? `${twBuyTarget.name}（${twBuyTarget.reason}）${twBuyTarget.holding ? '' : '　⬅ 新倉'}`
+    : (twPct < TARGET.tw ? '0050 或 009816 分批加碼' : '目前台股無明顯買點，等待');
+  const usSuggest = usBuyTarget
+    ? `${usBuyTarget.name}（${usBuyTarget.reason}）${usBuyTarget.holding ? '' : '　⬅ 新倉'}`
+    : (usPct < TARGET.us ? 'QQQ 或 BRK/B 分批加碼' : '目前美股無明顯買點，等待');
   const fundSuggest= fundAlloc > 5000 ? '安聯台灣科技基金（單筆補倉）' : '基金比例已足，暫不加碼';
 
   // ── 渲染建議 ──
@@ -1487,7 +1543,10 @@ function updateCashAdvice() {
   // Note section
   const noteLines = [];
   if (reserve > 0) noteLines.push(`💰 建議保留 ${fmtTW(reserve)} 現金（${Math.round(cashReserve*100)}%）作為機會準備金，實際投入 ${fmtTW(deployable)}。`);
-  if (buySignals.length > 0) noteLines.push(`🎯 現有買進訊號：${buySignals.slice(0,2).map(s=>s.name).join('、')}，優先考慮。`);
+  const holdingSignals = buySignals.filter(s=>s.holding);
+  const watchSignals   = buySignals.filter(s=>!s.holding);
+  if (holdingSignals.length > 0) noteLines.push(`🎯 持倉加碼訊號：${holdingSignals.slice(0,2).map(s=>s.name).join('、')}，優先考慮。`);
+  if (watchSignals.length > 0)   noteLines.push(`👀 觀察清單機會：${watchSignals.slice(0,2).map(s=>s.name).join('、')} 進入低位，可考慮建倉。`);
   if (concWarnings.length > 0) noteLines.push(...concWarnings.map(w => '⚠️ ' + w));
   if (marketNote.length > 0) noteLines.push(...marketNote.map(n => '📊 ' + n));
   if (noteLines.length === 0) noteLines.push('✅ 目前配置均衡，建議分 2-3 次分批投入，不要一次全倉。');
@@ -2151,7 +2210,7 @@ document.getElementById('updateTime').textContent = '載入中...';
 
 // ── VERSION CHECK — auto-clear stale localStorage ──
 (function versionCheck() {
-  const CURRENT_VERSION = '202606080408';
+  const CURRENT_VERSION = '202606080419';
   const stored = localStorage.getItem('app_version');
   if (stored !== CURRENT_VERSION) {
     // New version deployed — clear stale snapshot so fresh data loads
