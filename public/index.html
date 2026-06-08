@@ -2171,7 +2171,7 @@ document.getElementById('updateTime').textContent = '載入中...';
 
 // ── VERSION CHECK — auto-clear stale localStorage ──
 (function versionCheck() {
-  const CURRENT_VERSION = '202606081029';
+  const CURRENT_VERSION = '202606081031';
   const stored = localStorage.getItem('app_version');
   if (stored !== CURRENT_VERSION) {
     // New version deployed — clear stale snapshot so fresh data loads
@@ -2711,15 +2711,15 @@ function renderRealized() {
       { label:'🇺🇸 美股停損出場', val:usLossTotal, cnt:usLoss.length,  isTW:false, pos:false },
     ].map(item => {
       const fmtVal = item.isTW
-        ? (item.val>=0?'+':'')+' NT$'+Math.abs(Math.round(item.val)).toLocaleString('zh-TW')
-        : (item.val>=0?'+':'')+' $'+Math.abs(item.val).toFixed(2);
+        ? (item.val>=0?'+':'-')+' NT$'+Math.abs(Math.round(item.val)).toLocaleString('zh-TW')
+        : (item.val>=0?'+':'-')+' $'+Math.abs(item.val).toFixed(2);
       const color = item.pos ? 'var(--green)' : 'var(--red)';
       const border = item.pos ? 'rgba(62,207,142,.2)' : 'rgba(240,92,92,.2)';
-      return \`<div style="background:var(--surface2);border:1px solid \${border};border-radius:8px;padding:.75rem 1rem">
-        <div style="font-family:var(--mono);font-size:.58rem;color:var(--muted);margin-bottom:.3rem">\${item.label}</div>
-        <div style="font-family:var(--mono);font-size:.9rem;font-weight:600;color:\${color}">\${fmtVal}</div>
-        <div style="font-family:var(--mono);font-size:.58rem;color:var(--muted);margin-top:.15rem">\${item.cnt} 筆</div>
-      </div>\`;
+      return '<div style="background:var(--surface2);border:1px solid '+border+';border-radius:8px;padding:.75rem 1rem">'
+        + '<div style="font-family:var(--mono);font-size:.58rem;color:var(--muted);margin-bottom:.3rem">'+item.label+'</div>'
+        + '<div style="font-family:var(--mono);font-size:.9rem;font-weight:600;color:'+color+'">'+fmtVal+'</div>'
+        + '<div style="font-family:var(--mono);font-size:.58rem;color:var(--muted);margin-top:.15rem">'+item.cnt+' 筆</div>'
+        + '</div>';
     }).join('');
   }
   const _cb2 = document.getElementById('clearRealizedBtn'); if (_cb2) _cb2.style.display = 'inline-flex';
