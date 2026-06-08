@@ -2181,7 +2181,7 @@ document.getElementById('updateTime').textContent = '載入中...';
 
 // ── VERSION CHECK — auto-clear stale localStorage ──
 (function versionCheck() {
-  const CURRENT_VERSION = '202606081003';
+  const CURRENT_VERSION = '202606081004';
   const stored = localStorage.getItem('app_version');
   if (stored !== CURRENT_VERSION) {
     // New version deployed — clear stale snapshot so fresh data loads
@@ -2570,6 +2570,21 @@ document.addEventListener('click', e => {
 <script>
 // ── REALIZED P&L ──
 let realizedTrades = [];
+
+// Seed realized trades from latest CSV (auto-updated by Claude)
+(function seedRealizedTrades() {
+  const seedData = [{"name": "富強鑫", "code": "富強鑫", "market": "tw", "currency": "TWD", "buyDate": "2026/05/29", "sellDate": "2026/06/02", "shares": 1000.0, "buyPrice": 26.0, "sellPrice": 23.7, "buyCost": 26010.0, "sellAmt": 23620.0, "pnl": -2390.0, "ret": -9.19}, {"name": "凱基台灣TOP50", "code": "凱基台灣TOP50", "market": "tw", "currency": "TWD", "buyDate": "2026/04/23", "sellDate": "2026/06/08", "shares": 1000.0, "buyPrice": 12.68, "sellPrice": 14.7, "buyCost": 12685.0, "sellAmt": 14679.0, "pnl": 1994.0, "ret": 15.72}, {"name": "凱基台灣TOP50", "code": "凱基台灣TOP50", "market": "tw", "currency": "TWD", "buyDate": "2026/04/27", "sellDate": "2026/06/08", "shares": 1000.0, "buyPrice": 13.27, "sellPrice": 14.7, "buyCost": 13275.0, "sellAmt": 14679.0, "pnl": 1404.0, "ret": 10.58}, {"name": "凱基台灣TOP50", "code": "凱基台灣TOP50", "market": "tw", "currency": "TWD", "buyDate": "2026/04/13", "sellDate": "2026/06/08", "shares": 100.0, "buyPrice": 11.4, "sellPrice": 14.7, "buyCost": 1141.0, "sellAmt": 1467.0, "pnl": 326.0, "ret": 28.57}, {"name": "凱基台灣TOP50", "code": "凱基台灣TOP50", "market": "tw", "currency": "TWD", "buyDate": "2026/04/13", "sellDate": "2026/06/08", "shares": 100.0, "buyPrice": 11.38, "sellPrice": 14.7, "buyCost": 1139.0, "sellAmt": 1467.0, "pnl": 328.0, "ret": 28.8}, {"name": "凱基台灣TOP50", "code": "凱基台灣TOP50", "market": "tw", "currency": "TWD", "buyDate": "2026/04/15", "sellDate": "2026/06/08", "shares": 100.0, "buyPrice": 11.92, "sellPrice": 14.7, "buyCost": 1193.0, "sellAmt": 1467.0, "pnl": 274.0, "ret": 22.97}, {"name": "凱基台灣TOP50", "code": "凱基台灣TOP50", "market": "tw", "currency": "TWD", "buyDate": "2026/04/17", "sellDate": "2026/06/08", "shares": 421.0, "buyPrice": 11.95, "sellPrice": 14.7, "buyCost": 5032.0, "sellAmt": 6179.0, "pnl": 1147.0, "ret": 22.79}, {"name": "凱基台灣TOP50", "code": "凱基台灣TOP50", "market": "tw", "currency": "TWD", "buyDate": "2026/05/13", "sellDate": "2026/06/08", "shares": 80.0, "buyPrice": 13.78, "sellPrice": 14.7, "buyCost": 1103.0, "sellAmt": 1174.0, "pnl": 71.0, "ret": 6.44}, {"name": "凱基台灣TOP50", "code": "凱基台灣TOP50", "market": "tw", "currency": "TWD", "buyDate": "2026/06/05", "sellDate": "2026/06/08", "shares": 199.0, "buyPrice": 15.16, "sellPrice": 14.7, "buyCost": 3017.0, "sellAmt": 2927.0, "pnl": -90.0, "ret": -2.98}, {"name": "凱基台灣TOP50", "code": "凱基台灣TOP50", "market": "tw", "currency": "TWD", "buyDate": "2026/06/05", "sellDate": "2026/06/08", "shares": 14.0, "buyPrice": 15.16, "sellPrice": 14.73, "buyCost": 212.0, "sellAmt": 205.0, "pnl": -7.0, "ret": -3.3}, {"name": "凱基台灣TOP50", "code": "凱基台灣TOP50", "market": "tw", "currency": "TWD", "buyDate": "2026/06/05", "sellDate": "2026/06/08", "shares": 87.0, "buyPrice": 15.16, "sellPrice": 14.73, "buyCost": 1320.0, "sellAmt": 1279.0, "pnl": -41.0, "ret": -3.11}, {"name": "凱基台灣TOP50", "code": "凱基台灣TOP50", "market": "tw", "currency": "TWD", "buyDate": "2026/05/11", "sellDate": "2026/06/08", "shares": 113.0, "buyPrice": 14.1392, "sellPrice": 14.73, "buyCost": 1597.0, "sellAmt": 1662.0, "pnl": 65.0, "ret": 4.07}, {"name": "凱基台灣TOP50", "code": "凱基台灣TOP50", "market": "tw", "currency": "TWD", "buyDate": "2026/05/11", "sellDate": "2026/06/08", "shares": 200.0, "buyPrice": 14.1392, "sellPrice": 14.73, "buyCost": 2828.0, "sellAmt": 2942.0, "pnl": 114.0, "ret": 4.03}, {"name": "凱基台灣TOP50", "code": "凱基台灣TOP50", "market": "tw", "currency": "TWD", "buyDate": "2026/05/11", "sellDate": "2026/06/08", "shares": 50.0, "buyPrice": 14.1392, "sellPrice": 14.73, "buyCost": 707.0, "sellAmt": 735.0, "pnl": 28.0, "ret": 3.96}, {"name": "凱基台灣TOP50", "code": "凱基台灣TOP50", "market": "tw", "currency": "TWD", "buyDate": "2026/05/11", "sellDate": "2026/06/08", "shares": 61.0, "buyPrice": 14.1392, "sellPrice": 14.73, "buyCost": 864.0, "sellAmt": 900.0, "pnl": 36.0, "ret": 4.17}];
+  try {
+    const saved = JSON.parse(localStorage.getItem('realized_trades') || '[]');
+    // Keep US trades from localStorage, replace TW trades with seed
+    const usTrades = saved.filter(t => t.market === 'us');
+    const merged = [...seedData, ...usTrades];
+    realizedTrades = merged;
+    localStorage.setItem('realized_trades', JSON.stringify(realizedTrades));
+  } catch(e) {
+    realizedTrades = seedData;
+  }
+})();
 
 function loadRealizedCSV(e, market='tw') {
   const file = e.target.files[0];
