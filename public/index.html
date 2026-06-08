@@ -625,7 +625,7 @@ main { padding:2rem 2.5rem; max-width:1440px; margin:0 auto; }
       </div>
       <div id="cashAdviceSummary" style="font-family:var(--mono);font-size:.68rem;color:var(--muted)">輸入可用現金，獲得配置建議</div>
     </div>
-    <div id="cashAdviceDetail" style="margin-top:1rem;display:none">
+    <div id="cashAdviceDetail" style="margin-top:1rem">
       <div style="height:1px;background:var(--border);margin-bottom:1rem"></div>
       <div style="font-family:var(--mono);font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:.75rem">建議配置</div>
       <div id="cashAdviceGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem;margin-bottom:1rem"></div>
@@ -2210,7 +2210,7 @@ document.getElementById('updateTime').textContent = '載入中...';
 
 // ── VERSION CHECK — auto-clear stale localStorage ──
 (function versionCheck() {
-  const CURRENT_VERSION = '202606080420';
+  const CURRENT_VERSION = '202606080421';
   const stored = localStorage.getItem('app_version');
   if (stored !== CURRENT_VERSION) {
     // New version deployed — clear stale snapshot so fresh data loads
