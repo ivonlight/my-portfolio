@@ -878,28 +878,28 @@ const holdUS = [
 const holdTW = [
   {
     code:'009816', name:'凱基台灣TOP50',
-    cost: 13.08, shares: 3525, price: 15.19,
+    cost: 13.08, shares: 3525, price: 14.72,
     strongBuy: 12, buy: 13.5, fair: 15.5, rich: 17,
     note:'不配息ETF，省稅，長期取代0050加碼部位。跌至$13.5以下為理想加碼點。',
     isTW: true
   },
   {
     code:'0050', name:'元大台灣50',
-    cost: 50.13, shares: 3408, price: 104.15,
+    cost: 50.13, shares: 3408, price: 101.20,
     strongBuy: 90, buy: 96, fair: 106, rich: 116,
     note:'現價在合理區間。定期定額繼續，單筆加碼等回測 $96 以下。',
     isTW: true
   },
   {
     code:'00981A', name:'主動統一台股增長',
-    cost: 27.26, shares: 782, price: 30.81,
+    cost: 27.26, shares: 782,  price: 29.83,
     strongBuy: 25, buy: 27, fair: 31, rich: 35,
     note:'主動型台股ETF，不配息省稅。跌至$27以下為理想加碼點。',
     isTW: true
   },
   {
     code:'2330', name:'台積電',
-    cost: 1686.79, shares: 66, price: 2365,
+    cost: 1686.79, shares: 66, price: 2310,
     strongBuy: 2000, buy: 2150, fair: 2400, rich: 2700,
     note:'現價在合理區間上緣。等回測 $2,150 以下再加碼，不宜追高。',
     isTW: true
@@ -2283,7 +2283,7 @@ document.getElementById('updateTime').textContent = '載入中...';
 
 // ── VERSION CHECK — auto-clear stale localStorage ──
 (function versionCheck() {
-  const CURRENT_VERSION = '202606071004';
+  const CURRENT_VERSION = '202606080353';
   const stored = localStorage.getItem('app_version');
   if (stored !== CURRENT_VERSION) {
     // New version deployed — clear stale snapshot so fresh data loads
