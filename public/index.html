@@ -2171,7 +2171,7 @@ document.getElementById('updateTime').textContent = '載入中...';
 
 // ── VERSION CHECK — auto-clear stale localStorage ──
 (function versionCheck() {
-  const CURRENT_VERSION = '202606081043';
+  const CURRENT_VERSION = '202606081044';
   const stored = localStorage.getItem('app_version');
   if (stored !== CURRENT_VERSION) {
     // New version deployed — clear stale data so fresh seed loads
@@ -2794,18 +2794,38 @@ function renderRealized() {
   cards.innerHTML = periods.map((p,i) => {
     const twPnl = sumPnl(p.tw), usPnl = sumPnl(p.us);
     const total = p.tw.length + p.us.length;
-    const totalPnlTW = twPnl + usPnl * 31.5; // rough conversion for color
+    const totalPnlTW = twPnl + usPnl * 31.5;
     const twCost = p.tw.reduce((s,t)=>s+(t.buyCost||0),0);
     const usCost = p.us.reduce((s,t)=>s+(t.buyCost||0),0);
     const twRate = twCost>0 ? (twPnl/twCost*100).toFixed(1) : null;
     const usRate = usCost>0 ? (usPnl/usCost*100).toFixed(1) : null;
-    return `<div class="s-card ${totalPnlTW>=0?'g':'r'}" style="animation-delay:${i*.07}s">
-      <div class="s-label">${p.label}損益</div>
-      ${p.tw.length ? `<div style="font-family:var(--mono);font-size:.78rem;font-weight:600" class="${twPnl>=0?'pos':'neg'}">${twPnl>=0?'+':'-'}NT$${Math.abs(Math.round(twPnl)).toLocaleString('zh-TW')}</div>${twRate!==null ? '<div style="font-family:var(--mono);font-size:.62rem;font-weight:600;color:'+(twRate>=0?'var(--green)':'var(--red)')+'";background:'+(twRate>=0?'rgba(62,207,142,.15)':'rgba(240,92,92,.15)')+';border-radius:20px;padding:.15rem .55rem;display:inline-block">'+(twRate>=0?'+':'')+twRate+'%</div>' : ''}` : ''}
-      ${p.us.length ? `<div style="font-family:var(--mono);font-size:.78rem;font-weight:600;margin-top:.15rem" class="${usPnl>=0?'pos':'neg'}">${usPnl>=0?'+':'-'}$${Math.abs(usPnl).toFixed(2)} USD</div>` : ''}
-      ${!p.tw.length && !p.us.length ? `<div class="s-val" style="color:var(--muted)">—</div>` : ''}
-      <div class="s-sub" style="color:var(--muted);margin-top:.3rem">${total} 筆 ${p.us.length&&p.tw.length?'(台股+美股)':p.us.length?'(美股)':'(台股)'}</div>
-    </div>`;
+
+    const pillStyle = (rate, pos) => {
+      const bg = pos ? 'rgba(62,207,142,.15)' : 'rgba(240,92,92,.15)';
+      const col = pos ? 'var(--green)' : 'var(--red)';
+      const sign = pos ? '+' : '';
+      return '<span style="font-family:var(--mono);font-size:.62rem;font-weight:600;color:'+col+';background:'+bg+';border-radius:20px;padding:.1rem .5rem;margin-left:.4rem">'+sign+rate+'%</span>';
+    };
+
+    let html = '<div class="s-card '+(totalPnlTW>=0?'g':'r')+'" style="animation-delay:'+(i*.07)+'s">';
+    html += '<div class="s-label">'+p.label+'損益</div>';
+    if (p.tw.length) {
+      const sign = twPnl>=0?'+':'-';
+      html += '<div style="font-family:var(--mono);font-size:.78rem;font-weight:600;display:flex;align-items:center" class="'+(twPnl>=0?'pos':'neg')+'">';
+      html += sign+'NT$'+Math.abs(Math.round(twPnl)).toLocaleString('zh-TW');
+      if (twRate!==null) html += pillStyle(twRate, twPnl>=0);
+      html += '</div>';
+    }
+    if (p.us.length) {
+      const sign = usPnl>=0?'+':'-';
+      html += '<div style="font-family:var(--mono);font-size:.78rem;font-weight:600;margin-top:.1rem;display:flex;align-items:center" class="'+(usPnl>=0?'pos':'neg')+'">';
+      html += sign+'$'+Math.abs(usPnl).toFixed(2)+' USD';
+      if (usRate!==null) html += pillStyle(usRate, usPnl>=0);
+      html += '</div>';
+    }
+    html += '<div style="font-family:var(--mono);font-size:.6rem;color:var(--muted);margin-top:.3rem">'+total+' 筆（'+(p.tw.length&&p.us.length?'台股+美股':p.tw.length?'台股':'美股')+'）</div>';
+    html += '</div>';
+    return html;
   }).join('');
 
   renderPeriodTable('realizedWeek',  '本週', week,  sumPnl(week));
