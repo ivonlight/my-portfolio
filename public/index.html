@@ -723,7 +723,7 @@ main { padding:2rem 2.5rem; max-width:1440px; margin:0 auto; }
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:.75rem">
     <div>
       <div class="sec-hd" style="margin:0 0 .25rem"><h2>已實現損益</h2><div class="ln"></div></div>
-      <p style="font-family:var(--mono);font-size:.65rem;color:var(--muted)">上傳「證券已實現損益.csv」自動統計</p>
+
     </div>
     
   </div>
@@ -741,9 +741,9 @@ main { padding:2rem 2.5rem; max-width:1440px; margin:0 auto; }
   <!-- Empty state -->
   <div id="realizedEmpty" style="text-align:center;padding:3rem 1rem">
     <div style="font-size:3rem;margin-bottom:1rem">📋</div>
-    <div style="font-size:.85rem;font-weight:600;margin-bottom:.4rem">尚未上傳已實現損益</div>
+    <div style="font-size:.85rem;font-weight:600;margin-bottom:.4rem">尚無已實現損益記錄</div>
     <p style="font-size:.72rem;color:var(--muted);line-height:1.7;max-width:320px;margin:0 auto">
-      從券商後台匯出「證券已實現損益.csv」<br>點上方按鈕上傳，自動統計本週/本月/今年損益
+      傳送 CSV 給 Claude，自動更新統計
     </p>
   </div>
 
@@ -2132,6 +2132,7 @@ async function fetchLivePrices() {
     renderWaveTable(waveTW, 'waveTwTable', true);
     renderSummaryStrip();
     renderActionGrid();
+    renderRealized();
     renderDonut();
     renderReturnChart();
     renderUnrealized();
@@ -2166,7 +2167,7 @@ document.getElementById('updateTime').textContent = '載入中...';
 
 // ── VERSION CHECK — auto-clear stale localStorage ──
 (function versionCheck() {
-  const CURRENT_VERSION = '202606081014';
+  const CURRENT_VERSION = '202606081016';
   const stored = localStorage.getItem('app_version');
   if (stored !== CURRENT_VERSION) {
     // New version deployed — clear stale snapshot so fresh data loads
@@ -2549,6 +2550,8 @@ let realizedTrades = [];
   } catch(e) {
     realizedTrades = seedData;
   }
+  // Render after loading
+  if (typeof renderRealized === 'function') renderRealized();
 })();
 
 function loadRealizedCSV(e, market='tw') {
