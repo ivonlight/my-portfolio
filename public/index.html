@@ -756,7 +756,7 @@ main { padding:2rem 2.5rem; max-width:1440px; margin:0 auto; }
       <button class="import-btn" onclick="document.getElementById('realizedFile').click()" style="gap:.4rem">
         🇹🇼 台股已實現
       </button>
-      <input type="file" id="realizedFile" accept=".csv" style="display:none" onchange="loadRealizedCSV(event,'tw')">
+      <input type="file" id="realizedFile" accept=".csv" onchange="loadRealizedCSV(event,'tw')">
       <button class="import-btn" onclick="document.getElementById('realizedUsFile').click()" style="gap:.4rem;border-color:rgba(92,180,240,.4);background:rgba(92,180,240,.08);color:var(--blue)">
         🇺🇸 美股已實現
       </button>
@@ -2210,7 +2210,7 @@ document.getElementById('updateTime').textContent = '載入中...';
 
 // ── VERSION CHECK — auto-clear stale localStorage ──
 (function versionCheck() {
-  const CURRENT_VERSION = '202606080419';
+  const CURRENT_VERSION = '202606080420';
   const stored = localStorage.getItem('app_version');
   if (stored !== CURRENT_VERSION) {
     // New version deployed — clear stale snapshot so fresh data loads
@@ -2947,142 +2947,6 @@ function switchMobileTab(tab, btn) {
 
 
 
-<script>
-// ── PIN LOCK ──
-const CORRECT = '0000';
-let pinEntry = '';
 
-function pinPress(d) {
-  if (pinEntry.length >= 4) return;
-  pinEntry += d;
-  updateDots();
-  if (pinEntry.length === 4) {
-    setTimeout(checkPin, 150);
-  }
-}
-
-function pinDel() {
-  pinEntry = pinEntry.slice(0, -1);
-  updateDots();
-}
-
-function updateDots() {
-  for (let i = 0; i < 4; i++) {
-    const dot = document.getElementById('d' + i);
-    dot.classList.toggle('filled', i < pinEntry.length);
-    dot.classList.remove('error');
-  }
-}
-
-function checkPin() {
-  if (pinEntry === CORRECT) {
-    document.getElementById('lockScreen').classList.add('hidden');
-  } else {
-    for (let i = 0; i < 4; i++) {
-      document.getElementById('d' + i).classList.add('error');
-    }
-    document.getElementById('lockHint').textContent = '密碼錯誤，請再試一次';
-    setTimeout(() => {
-      pinEntry = '';
-      updateDots();
-      document.getElementById('lockHint').textContent = '輸入 4 位數密碼';
-    }, 800);
-  }
-}
-
-// Keyboard support
-document.addEventListener('keydown', e => {
-  if (document.getElementById('lockScreen').classList.contains('hidden')) return;
-  if (e.key >= '0' && e.key <= '9') pinPress(e.key);
-  if (e.key === 'Backspace') pinDel();
-});
-
-// ── CLAUDE BUBBLE ──
-function toggleBubble() {
-  const menu = document.getElementById('bubbleMenu');
-  menu.classList.toggle('open');
-}
-
-// Close bubble when clicking outside
-document.addEventListener('click', e => {
-  const bubble = document.getElementById('claudeBubble');
-  if (!bubble.contains(e.target)) {
-    document.getElementById('bubbleMenu').classList.remove('open');
-  }
-});
-
-function buildPortfolioContext() {
-  const fx = getUSDTWD() || 31.5;
-  const fmt = (n, isUS) => isUS ? '$'+n.toFixed(2) : 'NT$'+Math.round(n).toLocaleString('zh-TW');
-  const lines = ['【我的投資組合摘要】', ''];
-
-  // 基金
-  if (holdFunds.length) {
-    lines.push('基金：');
-    holdFunds.forEach(f => {
-      const val  = f.totalValue || f.totalCost || 0;
-      const cost = f.totalCost || 0;
-      const ret  = cost ? ((val-cost)/cost*100).toFixed(2) : '0.00';
-      lines.push(`- ${f.name}：本金 NT$${cost.toLocaleString('zh-TW')}，現值 NT$${Math.round(val).toLocaleString('zh-TW')}，${ret>=0?'+':''}${ret}%`);
-    });
-    lines.push('');
-  }
-
-  // 台股
-  const twAll = [...holdTW, ...waveTW].filter(s => (s.shares||0) > 0);
-  if (twAll.length) {
-    lines.push('台股持倉（TWD）：');
-    twAll.forEach(s => {
-      const ret = s.cost ? ((s.price-s.cost)/s.cost*100).toFixed(2) : '0.00';
-      const val = Math.round(s.price * s.shares);
-      lines.push(`- ${s.name}（${s.code}）：${s.shares}股，均價 NT$${s.cost}，現價 NT$${s.price}，${ret>=0?'+':''}${ret}%，市值 NT$${val.toLocaleString('zh-TW')}`);
-    });
-    lines.push('');
-  }
-
-  // 美股
-  const usAll = [...holdUS, ...waveUS].filter(s => (s.shares||0) > 0);
-  if (usAll.length) {
-    lines.push('美股持倉（USD）：');
-    usAll.forEach(s => {
-      const ret = s.cost ? ((s.price-s.cost)/s.cost*100).toFixed(2) : '0.00';
-      const val = (s.price * s.shares).toFixed(2);
-      lines.push(`- ${s.name}（${s.code}）：${s.shares}股，均價 $${s.cost}，現價 $${s.price}，${ret>=0?'+':''}${ret}%，市值 $${val}`);
-    });
-    lines.push('');
-  }
-
-  // 摘要
-  const twVal  = twAll.reduce((s,t)=>s+(t.price||0)*(t.shares||0),0);
-  const usVal  = usAll.reduce((s,t)=>s+(t.price||0)*(t.shares||0),0);
-  const fundVal= holdFunds.reduce((s,f)=>s+(f.totalValue||f.totalCost||0),0);
-  const total  = twVal + usVal*fx + fundVal;
-  lines.push(`投資總現值：約 NT$${Math.round(total).toLocaleString('zh-TW')}（美股以 USD/TWD ${fx.toFixed(1)} 換算）`);
-
-  return lines.join('\n');
-}
-
-
-function openClaude(type) {
-  document.getElementById('bubbleMenu').classList.remove('open');
-  let prompt = '';
-  const ctx = buildPortfolioContext();
-
-  if (type === 'general') {
-    prompt = ctx + '\n請用繁體中文回答我的問題：';
-  } else if (type === 'portfolio') {
-    prompt = ctx + '\n請用繁體中文分析這個投資組合的健康度，包括：1)整體配置是否合理 2)最大風險點 3)建議的下一步行動。回答要具體有數字。';
-  } else if (type === 'buy') {
-    prompt = ctx + '\n請用繁體中文告訴我：根據目前持倉和市場狀況，現在最值得加碼或新買進的標的是什麼？請給出具體理由和建議買進價位。';
-  } else if (type === 'risk') {
-    prompt = ctx + '\n請用繁體中文列出這個投資組合目前最需要關注的風險，並給出具體的應對建議，包括停損價位和時機。';
-  }
-
-  // Encode and open claude.ai
-  const encoded = encodeURIComponent(prompt);
-  const url = 'https://claude.ai/new?q=' + encoded;
-  window.open(url, '_blank');
-}
-</script>
 </body>
 </html>
