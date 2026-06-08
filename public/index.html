@@ -1771,6 +1771,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+    if (btn.dataset.tab === 'realized') renderRealized();
   });
 });
 
@@ -2170,7 +2171,7 @@ document.getElementById('updateTime').textContent = '載入中...';
 
 // ── VERSION CHECK — auto-clear stale localStorage ──
 (function versionCheck() {
-  const CURRENT_VERSION = '202606081027';
+  const CURRENT_VERSION = '202606081028';
   const stored = localStorage.getItem('app_version');
   if (stored !== CURRENT_VERSION) {
     // New version deployed — clear stale snapshot so fresh data loads
