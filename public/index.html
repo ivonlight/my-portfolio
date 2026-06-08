@@ -725,20 +725,7 @@ main { padding:2rem 2.5rem; max-width:1440px; margin:0 auto; }
       <div class="sec-hd" style="margin:0 0 .25rem"><h2>已實現損益</h2><div class="ln"></div></div>
       <p style="font-family:var(--mono);font-size:.65rem;color:var(--muted)">上傳「證券已實現損益.csv」自動統計</p>
     </div>
-    <div style="display:flex;gap:.6rem;align-items:center;flex-wrap:wrap">
-      <button class="import-btn" onclick="document.getElementById('realizedFile').click()" style="gap:.4rem">
-        🇹🇼 台股已實現
-      </button>
-      <input type="file" id="realizedFile" accept=".csv" onchange="loadRealizedCSV(event,'tw')">
-      <button class="import-btn" onclick="document.getElementById('realizedUsFile').click()" style="gap:.4rem;border-color:rgba(92,180,240,.4);background:rgba(92,180,240,.08);color:var(--blue)">
-        🇺🇸 美股已實現
-      </button>
-      <input type="file" id="realizedUsFile" accept=".csv" style="display:none" onchange="loadRealizedCSV(event,'us')">
-      <button id="exportRealizedBtn" onclick="exportRealized()" style="display:none;font-family:var(--mono);font-size:.6rem;letter-spacing:.07em;text-transform:uppercase;padding:.38rem .85rem;border-radius:6px;border:1px solid rgba(108,99,255,.4);background:rgba(108,99,255,.08);color:var(--accent);cursor:pointer;margin-right:.3rem">匯出備份</button>
-      <input type="file" id="importBackupFile" accept=".json" style="display:none" onchange="importBackup(event)">
-      <button onclick="document.getElementById('importBackupFile').click()" style="font-family:var(--mono);font-size:.6rem;letter-spacing:.07em;text-transform:uppercase;padding:.38rem .85rem;border-radius:6px;border:1px solid var(--border);background:none;color:var(--muted);cursor:pointer;margin-right:.3rem">還原備份</button>
-      <button id="clearRealizedBtn" onclick="clearRealized()" style="display:none;font-family:var(--mono);font-size:.6rem;letter-spacing:.07em;text-transform:uppercase;padding:.38rem .85rem;border-radius:6px;border:1px solid var(--border);background:none;color:var(--muted);cursor:pointer;transition:all .18s" onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">清除</button>
-    </div>
+    
   </div>
 
   <!-- Summary cards -->
