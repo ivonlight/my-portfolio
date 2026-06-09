@@ -1646,9 +1646,13 @@ function renderSummaryStrip() {
   const _sc1 = parseFloat(document.getElementById('cashInput')?.value) || 0;
   const _sc2 = parseFloat(document.getElementById('cashInputUSD')?.value) || 0;
   const cashTWD = _sc1 + _sc2 * USD_TWD;
-  const totalVal = twVal + fundVal + SMART_VALUE + usVal * USD_TWD + cashTWD;
-  const totalCost = twCost + fundCost + SMART_COST + usCost * USD_TWD + cashTWD;
-  const totalRet = totalCost ? (totalVal - totalCost)/totalCost*100 : 0;
+  // Investment value (no cash - cash has no cost/return)
+  const investVal  = twVal + fundVal + SMART_VALUE + usVal * USD_TWD;
+  const investCost = twCost + fundCost + SMART_COST + usCost * USD_TWD;
+  // Total assets = investments + cash
+  const totalVal  = investVal + cashTWD;
+  const totalCost = investCost;  // cash not counted in cost/return
+  const totalRet = investCost ? (investVal - investCost)/investCost*100 : 0;
 
   const fmtTW = n => 'NT$' + Math.abs(Math.round(n)).toLocaleString('zh-TW');
   const fmtUS = n => '$' + Math.abs(n).toFixed(0);
@@ -1659,7 +1663,7 @@ function renderSummaryStrip() {
     <div class="s-card" style="animation-delay:.05s">
       <div class="s-label">投資總現值 TWD</div>
       <div class="s-val">${fmtTW(totalVal)}</div>
-      <div class="s-sub ${cls(totalRet)}">${pSign(totalRet)}${Math.abs(totalRet).toFixed(2)}% 美股以匯率換算</div>
+      <div class="s-sub ${cls(totalRet)}">${pSign(totalRet)}${Math.abs(totalRet).toFixed(2)}% 投資報酬率${cashTWD>0?' · 含現金'+fmtTW(cashTWD):''}</div>
     </div>
     <div class="s-card ${cls(fundPnl) === 'pos' ? 'y' : 'r'}" style="animation-delay:.1s">
       <div class="s-label">基金損益 TWD</div>
@@ -2187,7 +2191,7 @@ document.getElementById('updateTime').textContent = '載入中...';
 
 // ── VERSION CHECK — auto-clear stale localStorage ──
 (function versionCheck() {
-  const CURRENT_VERSION = '202606090556';
+  const CURRENT_VERSION = '202606090614';
   const stored = localStorage.getItem('app_version');
   if (stored !== CURRENT_VERSION) {
     // New version deployed — clear stale data so fresh seed loads
