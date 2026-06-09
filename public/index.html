@@ -730,7 +730,7 @@ main { padding:2rem 2.5rem; max-width:1440px; margin:0 auto; }
 
   <!-- Summary cards -->
   <div id="realizedSummary" style="display:none">
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;margin-bottom:1rem" id="realizedCards"></div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem;margin-bottom:1rem" id="realizedCards"></div>
 
     <!-- Win/Loss breakdown -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:2rem" id="realizedWinLoss"></div>
@@ -2159,7 +2159,7 @@ document.getElementById('updateTime').textContent = '載入中...';
 
 // ── VERSION CHECK — auto-clear stale localStorage ──
 (function versionCheck() {
-  const CURRENT_VERSION = '202606090539';
+  const CURRENT_VERSION = '202606090541';
   const stored = localStorage.getItem('app_version');
   if (stored !== CURRENT_VERSION) {
     // New version deployed — clear stale data so fresh seed loads
@@ -2774,7 +2774,14 @@ function renderRealized() {
   const cards = document.getElementById('realizedCards');
   const twTrades = t => t.currency !== 'USD' && t.market !== 'us';
   const usTrades = t => t.currency === 'USD' || t.market === 'us';
+  const todayStr = now.toLocaleDateString('zh-TW',{year:'numeric',month:'2-digit',day:'2-digit'}).replace(/\//g,'/');
+  const today = realizedTrades.filter(t => {
+    const d = t.sellDate||'';
+    return d === todayStr || d.replace(/-/g,'/') === todayStr;
+  });
+
   const periods = [
+    { label:'今日', tw:today.filter(twTrades),  us:today.filter(usTrades)  },
     { label:'本週', tw:week.filter(twTrades),  us:week.filter(usTrades)  },
     { label:'本月', tw:month.filter(twTrades), us:month.filter(usTrades) },
     { label:'今年', tw:year.filter(twTrades),  us:year.filter(usTrades)  },
