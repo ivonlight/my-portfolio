@@ -2147,7 +2147,7 @@ document.getElementById('updateTime').textContent = '載入中...';
 
 // ── VERSION CHECK — auto-clear stale localStorage ──
 (function versionCheck() {
-  const CURRENT_VERSION = '202606090622';
+  const CURRENT_VERSION = '202606090649';
   const stored = localStorage.getItem('app_version');
   if (stored !== CURRENT_VERSION) {
     // New version deployed — clear stale data so fresh seed loads
@@ -2987,5 +2987,74 @@ function switchMobileTab(tab, btn) {
 
 
 
+
+<script>
+// ── CLAUDE BUBBLE ──
+function buildPortfolioContext() {
+  const fx = getUSDTWD() || 31.5;
+  const lines = ['【我的投資組合摘要】', ''];
+  if (holdFunds.length) {
+    lines.push('基金：');
+    holdFunds.forEach(f => {
+      const val = f.totalValue || f.totalCost || 0;
+      const cost = f.totalCost || 0;
+      const ret = cost ? ((val-cost)/cost*100).toFixed(2) : '0.00';
+      lines.push('- '+f.name+'：本金 NT$'+cost.toLocaleString('zh-TW')+'，現值 NT$'+Math.round(val).toLocaleString('zh-TW')+'，'+(ret>=0?'+':'')+ret+'%');
+    });
+    lines.push('');
+  }
+  const twAll = [...holdTW,...waveTW].filter(s=>(s.shares||0)>0);
+  if (twAll.length) {
+    lines.push('台股持倉（TWD）：');
+    twAll.forEach(s => {
+      const ret = s.cost ? ((s.price-s.cost)/s.cost*100).toFixed(2) : '0.00';
+      lines.push('- '+s.name+'（'+s.code+'）：'+s.shares+'股，均價 NT$'+s.cost+'，現價 NT$'+s.price+'，'+(ret>=0?'+':'')+ret+'%');
+    });
+    lines.push('');
+  }
+  const usAll = [...holdUS,...waveUS].filter(s=>(s.shares||0)>0);
+  if (usAll.length) {
+    lines.push('美股持倉（USD）：');
+    usAll.forEach(s => {
+      const ret = s.cost ? ((s.price-s.cost)/s.cost*100).toFixed(2) : '0.00';
+      lines.push('- '+s.name+'（'+s.code+'）：'+s.shares+'股，均價 $'+s.cost+'，現價 $'+s.price+'，'+(ret>=0?'+':'')+ret+'%');
+    });
+    lines.push('');
+  }
+  const twVal  = twAll.reduce((s,t)=>s+(t.price||0)*(t.shares||0),0);
+  const usVal  = usAll.reduce((s,t)=>s+(t.price||0)*(t.shares||0),0);
+  const fundVal= holdFunds.reduce((s,f)=>s+(f.totalValue||f.totalCost||0),0);
+  const total  = twVal + usVal*fx + fundVal;
+  lines.push('投資總現值：約 NT$'+Math.round(total).toLocaleString('zh-TW')+'（USD/TWD '+fx.toFixed(1)+'）');
+  return lines.join('\n');
+}
+
+function openClaude(mode) {
+  const ctx = buildPortfolioContext();
+  let prompt = '';
+  if (mode === 'portfolio') {
+    prompt = ctx + '\n\n請分析這個投資組合的整體健康度、主要風險和建議行動。用繁體中文回答。';
+  } else if (mode === 'buy') {
+    prompt = ctx + '\n\n請分析哪些存股標的現在值得加碼，根據目前的市場位置和我的成本給出建議。用繁體中文回答。';
+  } else if (mode === 'risk') {
+    prompt = ctx + '\n\n請分析這個投資組合目前的主要風險，包括停損建議和集中度問題。用繁體中文回答。';
+  } else {
+    prompt = ctx + '\n\n';
+  }
+  const encoded = encodeURIComponent(prompt);
+  window.open('https://claude.ai/new?q=' + encoded, '_blank');
+}
+
+// Bubble toggle
+const bubble = document.getElementById('claudeBubble');
+const menu   = document.getElementById('bubbleMenu');
+if (bubble) {
+  bubble.querySelector('.bubble-btn')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    menu.classList.toggle('open');
+  });
+  document.addEventListener('click', () => menu.classList.remove('open'));
+}
+</script>
 </body>
 </html>
