@@ -585,15 +585,26 @@ main { padding:2rem 2.5rem; max-width:1440px; margin:0 auto; }
   <!-- 現金配置 -->
   <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.25rem 1.5rem;margin-bottom:1.5rem;animation:fadeUp .4s ease both">
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem">
-      <div>
-        <div style="font-family:var(--mono);font-size:.58rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:.35rem">可用現金</div>
-        <div style="display:flex;align-items:center;gap:.6rem">
-          <span style="font-family:var(--mono);font-size:.8rem;color:var(--muted)">NT$</span>
-          <input type="number" id="cashInput" placeholder="0" step="1000"
-            style="font-family:var(--mono);font-size:1.1rem;font-weight:600;background:transparent;border:none;border-bottom:1px solid var(--border);color:var(--text);outline:none;width:140px;padding:.2rem .3rem;"
-            oninput="updateCashAdvice()"
-            onkeydown="if(event.key==='Enter')updateCashAdvice()">
-          <span style="font-family:var(--mono);font-size:.7rem;color:var(--muted)">TWD</span>
+      <div style="display:flex;gap:2rem;flex-wrap:wrap">
+        <div>
+          <div style="font-family:var(--mono);font-size:.58rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:.35rem">可用現金 TWD</div>
+          <div style="display:flex;align-items:center;gap:.5rem">
+            <span style="font-family:var(--mono);font-size:.8rem;color:var(--muted)">NT$</span>
+            <input type="number" id="cashInput" placeholder="0" step="1000"
+              style="font-family:var(--mono);font-size:1.1rem;font-weight:600;background:transparent;border:none;border-bottom:1px solid var(--border);color:var(--text);outline:none;width:120px;padding:.2rem .3rem;"
+              oninput="updateCashAdvice()"
+              onkeydown="if(event.key==='Enter')updateCashAdvice()">
+          </div>
+        </div>
+        <div>
+          <div style="font-family:var(--mono);font-size:.58rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:.35rem">可用現金 USD</div>
+          <div style="display:flex;align-items:center;gap:.5rem">
+            <span style="font-family:var(--mono);font-size:.8rem;color:var(--muted)">$</span>
+            <input type="number" id="cashInputUSD" placeholder="0" step="100"
+              style="font-family:var(--mono);font-size:1.1rem;font-weight:600;background:transparent;border:none;border-bottom:1px solid var(--border);color:var(--text);outline:none;width:120px;padding:.2rem .3rem;"
+              oninput="updateCashAdvice()"
+              onkeydown="if(event.key==='Enter')updateCashAdvice()">
+          </div>
         </div>
       </div>
       <div id="cashAdviceSummary" style="font-family:var(--mono);font-size:.68rem;color:var(--muted)">輸入可用現金，獲得配置建議</div>
@@ -1307,10 +1318,16 @@ function renderUnrealized() {
 }
 
 function updateCashAdvice() {
-  const cash = parseFloat(document.getElementById('cashInput').value) || 0;
+  const cashTWD = parseFloat(document.getElementById('cashInput').value) || 0;
+  const cashUSD = parseFloat(document.getElementById('cashInputUSD').value) || 0;
+  const fx = getUSDTWD() || 31.5;
+  const cash = cashTWD + cashUSD * fx;  // total in TWD
   const detail = document.getElementById('cashAdviceDetail');
   const summary = document.getElementById('cashAdviceSummary');
-  try { localStorage.setItem('cash_input', cash); } catch(e) {}
+  try {
+    localStorage.setItem('cash_input', cashTWD);
+    localStorage.setItem('cash_input_usd', cashUSD);
+  } catch(e) {}
 
   if (cash <= 0) {
     detail.style.display = 'none';
@@ -1507,11 +1524,11 @@ function updateCashAdvice() {
 // Load saved cash on startup
 (function loadCash() {
   try {
-    const saved = localStorage.getItem('cash_input');
-    if (saved) {
-      document.getElementById('cashInput').value = saved;
-      setTimeout(updateCashAdvice, 500);
-    }
+    const savedTWD = localStorage.getItem('cash_input');
+    const savedUSD = localStorage.getItem('cash_input_usd');
+    if (savedTWD) document.getElementById('cashInput').value = savedTWD;
+    if (savedUSD) document.getElementById('cashInputUSD').value = savedUSD;
+    if (savedTWD || savedUSD) setTimeout(updateCashAdvice, 500);
   } catch(e) {}
 })();
 
@@ -1623,7 +1640,9 @@ function renderSummaryStrip() {
   const fundRet  = fundCost ? fundPnl/fundCost*100 : 0;
 
   // Total TWD
-  const cashTWD = parseFloat(document.getElementById('cashInput')?.value) || 0;
+  const _twdIn = parseFloat(document.getElementById('cashInput')?.value) || 0;
+  const _usdIn = parseFloat(document.getElementById('cashInputUSD')?.value) || 0;
+  const cashTWD = _twdIn + _usdIn * USD_TWD;
   const totalVal = twVal + fundVal + SMART_VALUE + usVal * USD_TWD + cashTWD;
   const totalCost = twCost + fundCost + SMART_COST + usCost * USD_TWD + cashTWD;
   const totalRet = totalCost ? (totalVal - totalCost)/totalCost*100 : 0;
@@ -1667,7 +1686,9 @@ function renderDonut() {
   const total = twVal + usVal + fundVal;
   if (total === 0) return;
 
-  const cashTWD2 = parseFloat(document.getElementById('cashInput')?.value) || 0;
+  const _cTWD = parseFloat(document.getElementById('cashInput')?.value) || 0;
+  const _cUSD = parseFloat(document.getElementById('cashInputUSD')?.value) || 0;
+  const cashTWD2 = _cTWD + _cUSD * (getUSDTWD()||31.5);
   const slices = [
     { label:'基金', val:fundVal,  color:'#f0c05c' },
     { label:'台股', val:twVal,    color:'#7c6af7' },
@@ -2159,7 +2180,7 @@ document.getElementById('updateTime').textContent = '載入中...';
 
 // ── VERSION CHECK — auto-clear stale localStorage ──
 (function versionCheck() {
-  const CURRENT_VERSION = '202606090541';
+  const CURRENT_VERSION = '202606090549';
   const stored = localStorage.getItem('app_version');
   if (stored !== CURRENT_VERSION) {
     // New version deployed — clear stale data so fresh seed loads
