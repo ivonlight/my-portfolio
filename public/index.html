@@ -1334,7 +1334,7 @@ function updateCashAdvice() {
 
   if (!_cashTWD && !_cashUSD) {
     detail.style.display = 'none';
-    summary.textContent = '輸入可用現金，獲得配置建議';
+    summary.textContent = '';
     return;
   }
   detail.style.display = 'block';
@@ -2147,7 +2147,7 @@ document.getElementById('updateTime').textContent = '載入中...';
 
 // ── VERSION CHECK — auto-clear stale localStorage ──
 (function versionCheck() {
-  const CURRENT_VERSION = '202606090649';
+  const CURRENT_VERSION = '202606091251';
   const stored = localStorage.getItem('app_version');
   if (stored !== CURRENT_VERSION) {
     // New version deployed — clear stale data so fresh seed loads
