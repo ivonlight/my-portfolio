@@ -2147,7 +2147,7 @@ document.getElementById('updateTime').textContent = '載入中...';
 
 // ── VERSION CHECK — auto-clear stale localStorage ──
 (function versionCheck() {
-  const CURRENT_VERSION = '202606091251';
+  const CURRENT_VERSION = '202606091252';
   const stored = localStorage.getItem('app_version');
   if (stored !== CURRENT_VERSION) {
     // New version deployed — clear stale data so fresh seed loads
@@ -2215,6 +2215,19 @@ document.getElementById('updateTime').textContent = '載入中...';
   } catch(e) {
     realizedTrades = seedData;
   }
+})();
+
+// Load saved cash inputs
+(function() {
+  try {
+    const s1 = localStorage.getItem('cash_input');
+    const s2 = localStorage.getItem('cash_input_usd');
+    if (s1) document.getElementById('cashInput').value = s1;
+    if (s2 && document.getElementById('cashInputUSD')) document.getElementById('cashInputUSD').value = s2;
+    const v1 = parseFloat(s1) || 0;
+    const v2 = parseFloat(s2) || 0;
+    if (v1 > 0 || v2 > 0) setTimeout(updateCashAdvice, 600);
+  } catch(e) {}
 })();
 
 // Fetch live prices — handles all rendering
