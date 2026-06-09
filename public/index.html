@@ -1318,16 +1318,12 @@ function renderUnrealized() {
 }
 
 function updateCashAdvice() {
-  const cashTWD = parseFloat(document.getElementById('cashInput').value) || 0;
-  const cashUSD = parseFloat(document.getElementById('cashInputUSD').value) || 0;
-  const fx = getUSDTWD() || 31.5;
-  const cash = cashTWD + cashUSD * fx;  // total in TWD
+  const _cashTWD = parseFloat(document.getElementById('cashInput').value) || 0;
+  const _cashUSD = parseFloat(document.getElementById('cashInputUSD')?.value) || 0;
+  const cash = _cashTWD + _cashUSD * (getUSDTWD() || 31.5);
   const detail = document.getElementById('cashAdviceDetail');
   const summary = document.getElementById('cashAdviceSummary');
-  try {
-    localStorage.setItem('cash_input', cashTWD);
-    localStorage.setItem('cash_input_usd', cashUSD);
-  } catch(e) {}
+  try { localStorage.setItem('cash_input', _cashTWD); localStorage.setItem('cash_input_usd', _cashUSD); } catch(e) {}
 
   if (cash <= 0) {
     detail.style.display = 'none';
@@ -1524,11 +1520,11 @@ function updateCashAdvice() {
 // Load saved cash on startup
 (function loadCash() {
   try {
-    const savedTWD = localStorage.getItem('cash_input');
-    const savedUSD = localStorage.getItem('cash_input_usd');
-    if (savedTWD) document.getElementById('cashInput').value = savedTWD;
-    if (savedUSD) document.getElementById('cashInputUSD').value = savedUSD;
-    if (savedTWD || savedUSD) setTimeout(updateCashAdvice, 500);
+    const s1 = localStorage.getItem('cash_input');
+    const s2 = localStorage.getItem('cash_input_usd');
+    if (s1) document.getElementById('cashInput').value = s1;
+    if (s2) document.getElementById('cashInputUSD').value = s2;
+    if (s1 || s2) setTimeout(updateCashAdvice, 500);
   } catch(e) {}
 })();
 
@@ -1640,9 +1636,9 @@ function renderSummaryStrip() {
   const fundRet  = fundCost ? fundPnl/fundCost*100 : 0;
 
   // Total TWD
-  const _twdIn = parseFloat(document.getElementById('cashInput')?.value) || 0;
-  const _usdIn = parseFloat(document.getElementById('cashInputUSD')?.value) || 0;
-  const cashTWD = _twdIn + _usdIn * USD_TWD;
+  const _sc1 = parseFloat(document.getElementById('cashInput')?.value) || 0;
+  const _sc2 = parseFloat(document.getElementById('cashInputUSD')?.value) || 0;
+  const cashTWD = _sc1 + _sc2 * USD_TWD;
   const totalVal = twVal + fundVal + SMART_VALUE + usVal * USD_TWD + cashTWD;
   const totalCost = twCost + fundCost + SMART_COST + usCost * USD_TWD + cashTWD;
   const totalRet = totalCost ? (totalVal - totalCost)/totalCost*100 : 0;
@@ -1686,9 +1682,9 @@ function renderDonut() {
   const total = twVal + usVal + fundVal;
   if (total === 0) return;
 
-  const _cTWD = parseFloat(document.getElementById('cashInput')?.value) || 0;
-  const _cUSD = parseFloat(document.getElementById('cashInputUSD')?.value) || 0;
-  const cashTWD2 = _cTWD + _cUSD * (getUSDTWD()||31.5);
+  const _dc1 = parseFloat(document.getElementById('cashInput')?.value) || 0;
+  const _dc2 = parseFloat(document.getElementById('cashInputUSD')?.value) || 0;
+  const cashTWD2 = _dc1 + _dc2 * (getUSDTWD() || 31.5);
   const slices = [
     { label:'基金', val:fundVal,  color:'#f0c05c' },
     { label:'台股', val:twVal,    color:'#7c6af7' },
@@ -2180,7 +2176,7 @@ document.getElementById('updateTime').textContent = '載入中...';
 
 // ── VERSION CHECK — auto-clear stale localStorage ──
 (function versionCheck() {
-  const CURRENT_VERSION = '202606090549';
+  const CURRENT_VERSION = '202606090552';
   const stored = localStorage.getItem('app_version');
   if (stored !== CURRENT_VERSION) {
     // New version deployed — clear stale data so fresh seed loads
