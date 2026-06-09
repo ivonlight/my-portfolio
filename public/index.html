@@ -1038,6 +1038,13 @@ function renderHoldTable(stocks, tbodyId) {
       </td>
       <td id="dist-${s.code}">${distFromCost(s.price, s.cost)}</td>
       <td>${bzHtml}</td>
+      <td style="font-family:var(--mono);font-size:.68rem" id="target-${s.code}">
+        ${s.targetPrice
+          ? '<div style="color:'+(s.targetUpside>=0?'var(--green)':'var(--red)')+'">'+
+            (s.isTW===false?'$':'NT$')+s.targetPrice+'</div>'+
+            '<div style="font-size:.58rem;color:var(--muted)">'+(s.targetUpside>=0?'+':'')+s.targetUpside+'% · '+s.analystCount+'人</div>'
+          : '<span style="color:var(--muted)">—</span>'}
+      </td>
       <td><span class="sig ${initSig.cls}" id="sig-${s.code}">${initSig.lbl}</span></td>
       <td><span class="note-txt" id="note-${s.code}">${s.note}</span></td>`;
     tbody.appendChild(tr);
