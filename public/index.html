@@ -1663,22 +1663,22 @@ function renderSummaryStrip() {
     <div class="s-card" style="animation-delay:.05s">
       <div class="s-label">投資總現值 TWD</div>
       <div class="s-val">${fmtTW(totalVal)}</div>
-      <div class="s-sub ${cls(totalRet)}">${pSign(totalRet)}${Math.abs(totalRet).toFixed(2)}% 投資報酬率${cashTWD>0?' · 含現金'+fmtTW(cashTWD):''}</div>
+      <div class="s-sub ${cls(totalRet)}">${pSign(totalRet)}${Math.abs(totalRet).toFixed(2)}%</div>
     </div>
     <div class="s-card ${cls(fundPnl) === 'pos' ? 'y' : 'r'}" style="animation-delay:.1s">
       <div class="s-label">基金損益 TWD</div>
       <div class="s-val ${cls(fundPnl)}">${pSign(fundPnl)}${fmtTW(fundPnl)}</div>
-      <div class="s-sub ${cls(fundRet)}">${pSign(fundRet)}${Math.abs(fundRet).toFixed(2)}%　現值 ${fmtTW(fundVal)}</div>
+      <div class="s-sub ${cls(fundRet)}">${pSign(fundRet)}${Math.abs(fundRet).toFixed(2)}%</div>
     </div>
     <div class="s-card ${cls(twPnl) === 'pos' ? 'g' : 'r'}" style="animation-delay:.15s">
       <div class="s-label">台股損益 TWD</div>
       <div class="s-val ${cls(twPnl)}">${pSign(twPnl)}${fmtTW(twPnl)}</div>
-      <div class="s-sub ${cls(twRet)}">${pSign(twRet)}${Math.abs(twRet).toFixed(2)}%　現值 ${fmtTW(twVal)}</div>
+      <div class="s-sub ${cls(twRet)}">${pSign(twRet)}${Math.abs(twRet).toFixed(2)}%</div>
     </div>
     <div class="s-card ${cls(usPnl) === 'pos' ? 'g' : 'r'}" style="animation-delay:.2s">
       <div class="s-label">美股損益 USD</div>
       <div class="s-val ${cls(usPnl)}">${pSign(usPnl)}${fmtUS(usPnl)}</div>
-      <div class="s-sub ${cls(usRet)}">${pSign(usRet)}${Math.abs(usRet).toFixed(2)}%　現值 ${fmtUS(usVal)}</div>
+      <div class="s-sub ${cls(usRet)}">${pSign(usRet)}${Math.abs(usRet).toFixed(2)}%</div>
     </div>
 `;
 }
