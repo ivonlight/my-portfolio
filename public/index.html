@@ -676,7 +676,7 @@ main { padding:2rem 2.5rem; max-width:1440px; margin:0 auto; }
   <table class="stk-table">
     <thead><tr>
       <th>標的</th><th>均價 / 現價</th><th style="text-align:right">輸入新價格</th>
-      <th>距均價</th><th>買進區間</th><th>訊號</th><th>說明</th>
+      <th>距均價</th><th>買進區間</th><th>目標價</th><th>訊號</th><th>說明</th>
     </tr></thead>
     <tbody id="holdTwTable"></tbody>
   </table>
@@ -2108,7 +2108,11 @@ async function fetchLivePrices() {
       s.ret = s.cost ? Math.round(((lp.price - s.cost) / s.cost) * 10000) / 100 : s.ret;
       s.w52High = lp.w52High; s.w52Low = lp.w52Low; s.w52Position = lp.w52Position;
       s.ma50 = lp.ma50; s.ma200 = lp.ma200; s.maSignal = lp.maSignal; s.techSignal = lp.techSignal;
-      s.pe = lp.pe; s.fwPe = lp.fwPe; s.pb = lp.pb; s.roe = lp.roe;
+      s.pe = lp.pe || lp.trailPE || null;
+      s.targetPrice  = lp.targetPrice  ?? null;
+      s.targetUpside = lp.targetUpside ?? null;
+      s.analystCount = lp.analystCount ?? null;
+      s.recommendation = lp.recommendation ?? null;
 
       // Refine TP/SL using 52-week data (only for wave stocks, only if not manually set)
       const isWave = [...waveTW, ...waveUS].includes(s);
@@ -2176,7 +2180,7 @@ document.getElementById('updateTime').textContent = '載入中...';
 
 // ── VERSION CHECK — auto-clear stale localStorage ──
 (function versionCheck() {
-  const CURRENT_VERSION = '202606090552';
+  const CURRENT_VERSION = '202606090556';
   const stored = localStorage.getItem('app_version');
   if (stored !== CURRENT_VERSION) {
     // New version deployed — clear stale data so fresh seed loads
