@@ -857,17 +857,24 @@ const holdUS = [
 
 const holdTW = [
   {
+    code:'009816', name:'凱基台灣TOP50',
+    cost: 15.07, shares: 331, price: 14.66,
+    strongBuy: 13, buy: 14, fair: 15.5, rich: 17,
+    note:'不配息ETF，省稅。跌至$14以下為理想加碼點。',
+    isTW: true
+  },
+  {
     code:'0050', name:'元大台灣50',
-    cost: 50.13, shares: 3408, price: 103.5,
+    cost: 50.13, shares: 3408, price: 100.25,
     strongBuy: 90, buy: 96, fair: 106, rich: 116,
     note:'現價在合理區間。定期定額繼續，單筆加碼等回測 $96 以下。',
     isTW: true
   },
   {
     code:'2330', name:'台積電',
-    cost: 1686.79, shares: 66, price: 2305,
+    cost: 1744.08, shares: 73, price: 2255,
     strongBuy: 2000, buy: 2150, fair: 2400, rich: 2700,
-    note:'現價在合理區間上緣。等回測 $2,150 以下再加碼，不宜追高。',
+    note:'現價在合理區間。等回測 $2,150 以下再加碼。',
     isTW: true
   }
 ];
@@ -901,10 +908,11 @@ const waveUS = [
   { code:'TSLA', name:'Tesla',                    cost:423.34, price:403.58, ret:-4.7, tp1:480, tp2:520, sl:380, signal:'warn', shares:1.0, note:'高波動，緊盯停損', firstSeen:'2026-06-05' },
 ];
 const waveTW = [
-  { code:'2363',   name:'前鼎',  cost:223.5, price:222.0, ret:-0.7,  tp1:260, tp2:290, sl:210, signal:'hold', shares:50, note:'⚠️ 留意停損', firstSeen:'2026-06-05' },
-  { code:'6683',   name:'禾榮科',cost:387.0, price:364.0, ret:-5.9,  tp1:450, tp2:480, sl:360, signal:'warn', shares:30, note:'⚠️ 虧損留意', firstSeen:'2026-06-08' },
-  { code:'4956',   name:'台虹',  cost:153.0, price:133.5, ret:-12.7, tp1:175, tp2:195, sl:142, signal:'stop', shares:30, note:'⚠️ 虧損擴大', firstSeen:'2026-06-05' },
-  { code:'8104',   name:'南茂',  cost:98.0,  price:95.9,  ret:-2.2,  tp1:115, tp2:130, sl:92,  signal:'hold', shares:50, note:'', firstSeen:'2026-06-05' },
+  { code:'2363',   name:'前鼎',  cost:223.5, price:200.0, ret:-10.5, tp1:260, tp2:290, sl:210, signal:'warn', shares:50, note:'⚠️ 留意停損', firstSeen:'2026-06-05' },
+  { code:'6683',   name:'禾榮科',cost:387.0, price:340.5, ret:-12.0, tp1:450, tp2:480, sl:360, signal:'warn', shares:30, note:'⚠️ 虧損擴大', firstSeen:'2026-06-08' },
+  { code:'4956',   name:'台虹',  cost:153.0, price:129.0, ret:-15.7, tp1:175, tp2:195, sl:142, signal:'stop', shares:30, note:'⚠️ 虧損擴大', firstSeen:'2026-06-05' },
+  { code:'8104',   name:'南茂',  cost:98.0,  price:88.3,  ret:-9.9,  tp1:115, tp2:130, sl:92,  signal:'warn', shares:50, note:'⚠️ 接近停損', firstSeen:'2026-06-05' },
+  { code:'00988A', name:'主動統一全球創新', cost:18.9, price:21.84, ret:15.6, tp1:25, tp2:null, sl:17, signal:'hold', shares:10, note:'小倉位', firstSeen:'2026-05-26' },
 ];
 
 // ─────────────────────────────────────────────
