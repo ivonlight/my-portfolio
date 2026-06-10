@@ -1033,7 +1033,13 @@ function renderHoldTable(stocks, tbodyId) {
       </div>`;
 
     tr.innerHTML = `
-      <td><span class="sname">${s.name}</span><span class="scode">${s.code}</span></td>
+      <td>
+        <span class="sname">${s.name}</span><span class="scode">${s.code}</span>
+        ${s.shares ? '<div style="font-family:var(--mono);font-size:.62rem;color:var(--muted);margin-top:.2rem">'
+          + s.shares.toLocaleString('zh-TW') + ' 股'
+          + (s.price && s.shares ? ' · ' + (s.isTW===false?'$':'NT$') + Math.round(s.price*s.shares).toLocaleString('zh-TW') : '')
+          + '</div>' : ''}
+      </td>
       <td style="font-family:var(--mono);font-size:.75rem">
         <span style="color:var(--muted)">均 </span>${fmt(s.cost,s.isTW)}<br>
         <span style="color:var(--muted)">現 </span><span id="dp-${s.code}">${fmt(s.price,s.isTW)}</span>
@@ -2155,7 +2161,7 @@ document.getElementById('updateTime').textContent = '載入中...';
 
 // ── VERSION CHECK — auto-clear stale localStorage ──
 (function versionCheck() {
-  const CURRENT_VERSION = '202606100737';
+  const CURRENT_VERSION = '202606100743';
   const stored = localStorage.getItem('app_version');
   if (stored !== CURRENT_VERSION) {
     // New version deployed — clear stale data so fresh seed loads
