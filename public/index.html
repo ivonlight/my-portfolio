@@ -832,23 +832,21 @@ const watchlistTW = [
 const holdUS = [
   {
     code:'BRK/B', name:'Berkshire Hathaway',
-    cost: 485.72, shares: 6.56973,
-    price: 488.81,
+    cost: 485.723, shares: 6.56973, price: 487.77,
     strongBuy: 450, buy: 470, fair: 490, rich: 520,
     note:'巴菲特護城河。跌至$470以下為理想加碼點。',
     isTW: false
   },
   {
     code:'NVDA', name:'NVIDIA',
-    cost: 175.87, shares: 10.86983, price: 209.91,
+    cost: 177.918, shares: 11.86983, price: 208.19,
     strongBuy: 170, buy: 190, fair: 215, rich: 260,
     note:'AI核心持股，長期存股。跌至 $190 以下為理想加碼點。',
     isTW: false
   },
   {
     code:'QQQ', name:'Invesco QQQ',
-    cost: 573.19, shares: 3.06421,
-    price: 723.87,
+    cost: 588.978, shares: 3.40668, price: 707.83,
     strongBuy: 630, buy: 670, fair: 730, rich: 780,
     note:'科技大盤ETF，長期存股。等回調$670以下加碼。',
     isTW: false
@@ -2160,7 +2158,7 @@ document.getElementById('updateTime').textContent = '載入中...';
 
 // ── VERSION CHECK — auto-clear stale localStorage ──
 (function versionCheck() {
-  const CURRENT_VERSION = '202606100745';
+  const CURRENT_VERSION = '202606100748';
   const stored = localStorage.getItem('app_version');
   if (stored !== CURRENT_VERSION) {
     // New version deployed — clear stale data so fresh seed loads
