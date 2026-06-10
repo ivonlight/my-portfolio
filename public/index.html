@@ -912,7 +912,6 @@ const waveTW = [
   { code:'6683',   name:'禾榮科',cost:387.0, price:340.5, ret:-12.0, tp1:450, tp2:480, sl:360, signal:'warn', shares:30, note:'⚠️ 虧損擴大', firstSeen:'2026-06-08' },
   { code:'4956',   name:'台虹',  cost:153.0, price:129.0, ret:-15.7, tp1:175, tp2:195, sl:142, signal:'stop', shares:30, note:'⚠️ 虧損擴大', firstSeen:'2026-06-05' },
   { code:'8104',   name:'南茂',  cost:98.0,  price:88.3,  ret:-9.9,  tp1:115, tp2:130, sl:92,  signal:'warn', shares:50, note:'⚠️ 接近停損', firstSeen:'2026-06-05' },
-  { code:'00988A', name:'主動統一全球創新', cost:18.9, price:21.84, ret:15.6, tp1:25, tp2:null, sl:17, signal:'hold', shares:10, note:'小倉位', firstSeen:'2026-05-26' },
 ];
 
 // ─────────────────────────────────────────────
@@ -2161,7 +2160,7 @@ document.getElementById('updateTime').textContent = '載入中...';
 
 // ── VERSION CHECK — auto-clear stale localStorage ──
 (function versionCheck() {
-  const CURRENT_VERSION = '202606100743';
+  const CURRENT_VERSION = '202606100745';
   const stored = localStorage.getItem('app_version');
   if (stored !== CURRENT_VERSION) {
     // New version deployed — clear stale data so fresh seed loads
