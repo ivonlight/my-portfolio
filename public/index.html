@@ -880,15 +880,7 @@ const holdFunds = [
     note:'主動型科技基金，單筆投入。定期檢視，不需特別擇時。',
     isTW: true, isFund: true
   },
-  {
-    code:'路博邁台日雙星', name:'路博邁台日雙星T',
-    cost: null, price: null, units: null,
-    totalCost: null,  // 本金由localStorage管理
-    totalValue: null, // 現值由localStorage管理
-    navDate: '—',
-    note:'台日主題，短期震盪正常，繼續持有。',
-    isTW: true, isFund: true
-  }
+
 ];
 
 // 波段標的（均價已合併加權平均）
@@ -2150,7 +2142,7 @@ document.getElementById('updateTime').textContent = '載入中...';
 
 // ── VERSION CHECK — auto-clear stale localStorage ──
 (function versionCheck() {
-  const CURRENT_VERSION = '202606110837';
+  const CURRENT_VERSION = '202606111239';
   const stored = localStorage.getItem('app_version');
   if (stored !== CURRENT_VERSION) {
     // New version deployed — clear stale data so fresh seed loads
