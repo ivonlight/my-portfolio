@@ -874,11 +874,14 @@ const holdFunds = [
   {
     code:'安聯台灣科技', name:'安聯台灣科技基金',
     cost: null, price: null, units: null,
-    totalCost: null,  // 本金由localStorage管理（存股頁面輸入）
-    totalValue: null, // 現值由localStorage管理
+    totalCost: null, totalValue: null,
     navDate: '—',
     note:'主動型科技基金，單筆投入。定期檢視，不需特別擇時。',
-    isTW: true, isFund: true
+    isTW: true, isFund: true,
+    subAccounts: [
+      { code:'安聯台灣科技_國泰',  label:'國泰' },
+      { code:'安聯台灣科技_基富通', label:'基富通' },
+    ]
   },
 
 ];
@@ -1145,11 +1148,17 @@ function editTPSL(code, isTW) {
 
 (function loadFundValues() {
   try {
-    const savedVals = JSON.parse(localStorage.getItem('fund_values') || '{}');
+    const savedVals  = JSON.parse(localStorage.getItem('fund_values') || '{}');
     const savedCosts = JSON.parse(localStorage.getItem('fund_costs') || '{}');
     holdFunds.forEach(s => {
-      if (savedVals[s.code]  != null) s.totalValue = savedVals[s.code];
-      if (savedCosts[s.code] != null) s.totalCost  = savedCosts[s.code];
+      if (s.subAccounts) {
+        // Aggregate sub-accounts
+        s.totalCost  = s.subAccounts.reduce((sum, sub) => sum + (parseFloat(savedCosts[sub.code]) || 0), 0) || null;
+        s.totalValue = s.subAccounts.reduce((sum, sub) => sum + (parseFloat(savedVals[sub.code])  || 0), 0) || null;
+      } else {
+        if (savedVals[s.code]  != null) s.totalValue = savedVals[s.code];
+        if (savedCosts[s.code] != null) s.totalCost  = savedCosts[s.code];
+      }
     });
   } catch(e) {}
 })();
@@ -2140,7 +2149,7 @@ document.getElementById('updateTime').textContent = '載入中...';
 
 // ── VERSION CHECK — auto-clear stale localStorage ──
 (function versionCheck() {
-  const CURRENT_VERSION = '202606120224';
+  const CURRENT_VERSION = '202606151452';
   const stored = localStorage.getItem('app_version');
   if (stored !== CURRENT_VERSION) {
     // New version deployed — clear stale data so fresh seed loads
