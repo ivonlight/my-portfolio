@@ -983,19 +983,33 @@ function renderHoldTable(stocks, tbodyId) {
         <td><span class="sname">${s.name}</span><span class="scode">${s.code}</span></td>
         <td style="text-align:right">
           <div style="font-family:var(--mono);font-size:.58rem;color:var(--muted);margin-bottom:.2rem">本金 (TWD)</div>
-          <input class="price-input" type="number" id="fcost-${s.code}"
-            value="${s.totalCost||''}" step="1"
-            onchange="updateFundCost('${s.code}')"
-            onkeydown="if(event.key==='Enter')updateFundCost('${s.code}')"
-            style="width:110px">
+          ${s.subAccounts ? s.subAccounts.map(function(sub) {
+            return '<div style="display:flex;align-items:center;gap:.3rem;margin-bottom:.25rem">'
+              + '<span style="font-family:var(--mono);font-size:.56rem;color:var(--muted);width:36px">' + sub.label + '</span>'
+              + '<input class="price-input" type="number" id="fcost-' + sub.code + '"'
+              + ' value="' + (getFundCost(sub.code)||'') + '" step="1"'
+              + ' onchange="updateFundCost('' + sub.code + '',null,'' + s.code + '')"'
+              + ' style="width:85px">'
+              + '</div>';
+          }).join('') : '<input class="price-input" type="number" id="fcost-${s.code}"'
+            + ' value="${s.totalCost||''}" step="1"'
+            + ' onchange="updateFundCost('${s.code}')"'
+            + ' style="width:110px">'}
         </td>
         <td style="text-align:right">
           <div style="font-family:var(--mono);font-size:.58rem;color:var(--muted);margin-bottom:.2rem">輸入最新現值 (TWD)</div>
-          <input class="price-input" type="number" id="finp-${s.code}"
-            value="${s.totalValue||''}" step="1"
-            onchange="updateFund('${s.code}')"
-            onkeydown="if(event.key==='Enter')updateFund('${s.code}')"
-            style="width:110px">
+          ${s.subAccounts ? s.subAccounts.map(function(sub) {
+            return '<div style="display:flex;align-items:center;gap:.3rem;margin-bottom:.25rem">'
+              + '<span style="font-family:var(--mono);font-size:.56rem;color:var(--muted);width:36px">' + sub.label + '</span>'
+              + '<input class="price-input" type="number" id="finp-' + sub.code + '"'
+              + ' value="' + (getFundValue(sub.code)||'') + '" step="1"'
+              + ' onchange="updateFund('' + sub.code + '','' + s.code + '')"'
+              + ' style="width:85px">'
+              + '</div>';
+          }).join('') : '<input class="price-input" type="number" id="finp-${s.code}"'
+            + ' value="${s.totalValue||''}" step="1"'
+            + ' onchange="updateFund('${s.code}')"'
+            + ' style="width:110px">'}
         </td>
         <td id="fpnl-${s.code}" style="font-family:var(--mono)">${pnlDisplay}</td>
         <td><span style="font-family:var(--mono);font-size:.65rem;color:var(--muted)" id="fnavdate-${s.code}">淨值日 ${s.navDate}</span></td>
@@ -2149,7 +2163,7 @@ document.getElementById('updateTime').textContent = '載入中...';
 
 // ── VERSION CHECK — auto-clear stale localStorage ──
 (function versionCheck() {
-  const CURRENT_VERSION = '202606151452';
+  const CURRENT_VERSION = '202606151453';
   const stored = localStorage.getItem('app_version');
   if (stored !== CURRENT_VERSION) {
     // New version deployed — clear stale data so fresh seed loads
