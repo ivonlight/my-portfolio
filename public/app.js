@@ -1975,13 +1975,15 @@ function renderPeriodTable(id, label, trades, totalPnl, collapsed) {
     </td></tr>
     ${buildRows(usTr)}` : '';
 
+  const isHidden = collapsed ? 'display:none' : '';
+  const chv = collapsed ? '▶' : '▼';
   el.innerHTML = `
     <div class="realized-period">
-      <div class="realized-period-hd">
-        <h3>${label}（${trades.length} 筆）</h3>
+      <div class="realized-period-hd" style="cursor:pointer" onclick="var w=this.nextElementSibling;w.style.display=w.style.display==='none'?'block':'none';this.querySelector('.rchv').textContent=w.style.display==='none'?'▶':'▼'">
+        <h3>${label}（${trades.length} 筆）<span class="rchv" style="font-size:.65rem;margin-left:.35rem;color:var(--muted)">${chv}</span></h3>
         <div class="period-total" style="font-size:.75rem;display:flex;flex-direction:column;align-items:flex-end;gap:.15rem">${headerParts.join('')}</div>
       </div>
-      <div class="period-wrap">
+      <div class="period-wrap" style="${isHidden}">
         <table class="r-tbl">
           <thead><tr><th>股票</th><th>筆數</th><th></th><th></th><th>報酬率</th><th>損益</th></tr></thead>
           <tbody>${twSection}${usSection}</tbody>
