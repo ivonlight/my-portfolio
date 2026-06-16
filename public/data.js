@@ -1,7 +1,7 @@
 // Portfolio data - auto-updated by Claude
-// Last updated: 202606161200
+// Last updated: 202606161234
 const PORTFOLIO_DATA = {
-  "version": "202606161227",
+  "version": "202606161234",
   "holdTW": [
     {
       "code": "0050",
@@ -741,9 +741,7 @@ const PORTFOLIO_DATA = {
     "ORCL",
     "0050.TW",
     "2330.TW",
-    "00981A.TWO",
     "2454.TW",
-    "LLY",
     "GOOG",
     "AMZN",
     "AAPL",
@@ -752,7 +750,6 @@ const PORTFOLIO_DATA = {
     "MSFT",
     "GLW",
     "AVGO",
-    "ORCL",
     "VRT",
     "GEV",
     "5292.TW",
