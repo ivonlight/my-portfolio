@@ -805,94 +805,23 @@ main { padding:2rem 2.5rem; max-width:1440px; margin:0 auto; }
 
 <script>
 // ── 觀察清單（未持有，候選買進）──
-const watchlistUS = [
-  { code:'LLY',  name:'Eli Lilly',    score:7.9 },
-  { code:'GOOG', name:'Alphabet',      score:7.4 },
-  { code:'AMZN', name:'Amazon',        score:7.2 },
-  { code:'AAPL', name:'Apple',         score:7.2 },
-  { code:'MRVL', name:'Marvell',       score:7.1 },
-  { code:'META', name:'Meta',          score:7.1 },
-  { code:'MSFT', name:'Microsoft',     score:7.1 },
-  { code:'GLW',  name:'Corning',       score:7.0 },
-  { code:'AVGO', name:'Broadcom',      score:7.0 },
-  { code:'ORCL', name:'Oracle',        score:6.9 },
-  { code:'VRT',  name:'Vertiv',        score:6.9 },
-  { code:'GEV',  name:'GE Vernova',    score:6.8 },
-];
-const watchlistTW = [
-  { code:'009816', name:'凱基台灣TOP50', note:'已出清，觀察回檔再進' },
-  { code:'00981A', name:'主動統一台股增長', note:'已出清，觀察回檔再進' },
-  { code:'5292',   name:'華懋',   note:'長期目標' },
-  { code:'2301',   name:'光寶電', note:'長期目標' },
-];
+const watchlistUS = PORTFOLIO_DATA.watchlistUS;
+const watchlistTW = PORTFOLIO_DATA.watchlistTW;
 
 // ─────────────────────────────────────────────
 // DATA
 // ─────────────────────────────────────────────
 
 // 存股 (long-hold): buy signal logic
-const holdUS = [
-  {
-    code:'BRK/B', name:'Berkshire Hathaway',
-    cost: 485.723, shares: 6.56973, price: 485.79,
-    strongBuy: 450, buy: 470, fair: 490, rich: 520,
-    note:'巴菲特護城河。跌至$470以下為理想加碼點。',
-    isTW: false
-  },
-  {
-    code:'NVDA', name:'NVIDIA',
-    cost: 177.918, shares: 11.86983, price: 204.87,
-    strongBuy: 170, buy: 190, fair: 215, rich: 260,
-    note:'AI核心持股，長期存股。跌至 $190 以下為理想加碼點。',
-    isTW: false
-  },
-  {
-    code:'QQQ', name:'Invesco QQQ',
-    cost: 588.978, shares: 3.40668, price: 717.12,
-    strongBuy: 630, buy: 670, fair: 730, rich: 780,
-    note:'科技大盤ETF，長期存股。等回調$670以下加碼。',
-    isTW: false
-  }
-];
+const holdUS = PORTFOLIO_DATA.holdUS;
 
-const holdTW = [
-  {
-    code:'0050', name:'元大台灣50',
-    cost: 52.73, shares: 3600, price: 102.15,
-    strongBuy: 90, buy: 96, fair: 106, rich: 116,
-    note:'現價在合理區間。定期定額繼續，單筆加碼等回測 $96 以下。',
-    isTW: true
-  },
-  {
-    code:'2330', name:'台積電',
-    cost: 1757.04, shares: 75, price: 2295,
-    strongBuy: 2000, buy: 2150, fair: 2400, rich: 2700,
-    note:'現價在合理區間。等回測 $2,150 以下再加碼。',
-    isTW: true
-  }
-];
+const holdTW = PORTFOLIO_DATA.holdTW;
 
-const holdFunds = [
-  {
-    code:'安聯台灣科技', name:'安聯台灣科技基金',
-    cost: null, price: null, units: null,
-    totalCost: null,  // 本金由localStorage管理（存股頁面輸入）
-    totalValue: null, // 現值由localStorage管理
-    navDate: '—',
-    note:'主動型科技基金，單筆投入。定期檢視，不需特別擇時。',
-    isTW: true, isFund: true
-  },
-
-];
+const holdFunds = PORTFOLIO_DATA.holdFunds;
 
 // 波段標的（均價已合併加權平均）
-const waveUS = [
-  { code:'NOW',  name:'ServiceNow', cost:130.15, price:103.08, ret:-20.8, tp1:160, tp2:185, sl:100, signal:'stop', shares:1, note:'⚠️ 虧損擴大', firstSeen:'2026-06-05' },
-  { code:'PLTR', name:'Palantir',   cost:133.11, price:131.08, ret:-1.5,  tp1:155, tp2:170, sl:120, signal:'warn', shares:1, note:'AI數據分析', firstSeen:'2026-05-01' },
-];
-const waveTW = [
-  { code:'2454', name:'聯發科', cost:4039.38, price:4260, ret:5.5, tp1:4700, tp2:5000, sl:3800, signal:'hold', shares:8, note:'AI族群動能強', firstSeen:'2026-06-11' },
-];
+const waveUS = PORTFOLIO_DATA.waveUS;
+const waveTW = PORTFOLIO_DATA.waveTW;
 
 // ─────────────────────────────────────────────
 // HELPERS
@@ -2140,7 +2069,7 @@ document.getElementById('updateTime').textContent = '載入中...';
 
 // ── VERSION CHECK — auto-clear stale localStorage ──
 (function versionCheck() {
-  const CURRENT_VERSION = '202606151458';
+  const CURRENT_VERSION = PORTFOLIO_DATA.version;
   const stored = localStorage.getItem('app_version');
   if (stored !== CURRENT_VERSION) {
     // New version deployed — clear stale data so fresh seed loads
@@ -2195,7 +2124,7 @@ document.getElementById('updateTime').textContent = '載入中...';
 
 // Seed realized trades from latest CSV (auto-updated by Claude)
 (function seedRealizedTrades() {
-  const seedData = [{"name": "元大台灣50正2", "code": "元大台灣50正2", "market": "tw", "currency": "TWD", "buyDate": "2026/06/08", "sellDate": "2026/06/09", "shares": 200, "buyPrice": 33.95, "sellPrice": 35.36, "buyCost": 6792, "sellAmt": 7063, "pnl": 271, "ret": 3.99}, {"name": "主動統一台股增長", "code": "主動統一台股增長", "market": "tw", "currency": "TWD", "buyDate": "2026/04/27", "sellDate": "2026/06/09", "shares": 390, "buyPrice": 28.25, "sellPrice": 31.11, "buyCost": 11022, "sellAmt": 12116, "pnl": 1094, "ret": 9.93}, {"name": "主動統一台股增長", "code": "主動統一台股增長", "market": "tw", "currency": "TWD", "buyDate": "2026/05/20", "sellDate": "2026/06/09", "shares": 50, "buyPrice": 27.2, "sellPrice": 31.11, "buyCost": 1361, "sellAmt": 1553, "pnl": 192, "ret": 14.11}, {"name": "主動統一台股增長", "code": "主動統一台股增長", "market": "tw", "currency": "TWD", "buyDate": "2026/06/05", "sellDate": "2026/06/09", "shares": 342, "buyPrice": 26.1345, "sellPrice": 31.11, "buyCost": 8941, "sellAmt": 10626, "pnl": 1685, "ret": 18.85}, {"name": "國巨*", "code": "國巨*", "market": "tw", "currency": "TWD", "buyDate": "2026/06/04", "sellDate": "2026/06/09", "shares": 5, "buyPrice": 777, "sellPrice": 826, "buyCost": 3886, "sellAmt": 4117, "pnl": 231, "ret": 5.94}, {"name": "聯發科", "code": "聯發科", "market": "tw", "currency": "TWD", "buyDate": "2026/05/29", "sellDate": "2026/06/09", "shares": 1, "buyPrice": 4270, "sellPrice": 4470, "buyCost": 4271, "sellAmt": 4455, "pnl": 184, "ret": 4.31}, {"name": "聯發科", "code": "聯發科", "market": "tw", "currency": "TWD", "buyDate": "2026/06/05", "sellDate": "2026/06/09", "shares": 1, "buyPrice": 4280, "sellPrice": 4470, "buyCost": 4281, "sellAmt": 4455, "pnl": 174, "ret": 4.06}, {"name": "聯發科", "code": "聯發科", "market": "tw", "currency": "TWD", "buyDate": "2026/06/08", "sellDate": "2026/06/09", "shares": 1, "buyPrice": 4030, "sellPrice": 4470, "buyCost": 4031, "sellAmt": 4455, "pnl": 424, "ret": 10.52}, {"name": "力積電", "code": "力積電", "market": "tw", "currency": "TWD", "buyDate": "2026/06/08", "sellDate": "2026/06/09", "shares": 50, "buyPrice": 67.3, "sellPrice": 71, "buyCost": 3366, "sellAmt": 3538, "pnl": 172, "ret": 5.11}, {"name": "力積電", "code": "力積電", "market": "tw", "currency": "TWD", "buyDate": "2026/06/08", "sellDate": "2026/06/09", "shares": 30, "buyPrice": 67.9, "sellPrice": 71, "buyCost": 2038, "sellAmt": 2123, "pnl": 85, "ret": 4.17}, {"name": "凱基台灣TOP50", "code": "凱基台灣TOP50", "market": "tw", "currency": "TWD", "buyDate": "2026/06/09", "sellDate": "2026/06/11", "shares": 331, "buyPrice": 15.0695, "sellPrice": 14.4, "buyCost": 4989, "sellAmt": 4761, "pnl": -228, "ret": -4.57}, {"name": "禾榮科", "code": "禾榮科", "market": "tw", "currency": "TWD", "buyDate": "2026/06/08", "sellDate": "2026/06/11", "shares": 10, "buyPrice": 398, "sellPrice": 342, "buyCost": 3981, "sellAmt": 3408, "pnl": -573, "ret": -14.39}, {"name": "禾榮科", "code": "禾榮科", "market": "tw", "currency": "TWD", "buyDate": "2026/06/08", "sellDate": "2026/06/11", "shares": 10, "buyPrice": 393, "sellPrice": 342, "buyCost": 3931, "sellAmt": 3409, "pnl": -522, "ret": -13.28}, {"name": "禾榮科", "code": "禾榮科", "market": "tw", "currency": "TWD", "buyDate": "2026/06/09", "sellDate": "2026/06/11", "shares": 10, "buyPrice": 370, "sellPrice": 342, "buyCost": 3701, "sellAmt": 3409, "pnl": -292, "ret": -7.89}, {"name": "台虹", "code": "台虹", "market": "tw", "currency": "TWD", "buyDate": "2026/06/01", "sellDate": "2026/06/11", "shares": 30, "buyPrice": 153, "sellPrice": 130, "buyCost": 4591, "sellAmt": 3888, "pnl": -703, "ret": -15.31}, {"name": "南茂", "code": "南茂", "market": "tw", "currency": "TWD", "buyDate": "2026/06/02", "sellDate": "2026/06/11", "shares": 50, "buyPrice": 98, "sellPrice": 95.6, "buyCost": 4901, "sellAmt": 4765, "pnl": -136, "ret": -2.77}, {"name": "前鼎", "code": "前鼎", "market": "tw", "currency": "TWD", "buyDate": "2026/06/05", "sellDate": "2026/06/11", "shares": 28, "buyPrice": 223.5, "sellPrice": 194.5, "buyCost": 6260, "sellAmt": 5428, "pnl": -832, "ret": -13.29}, {"name": "保瑞", "code": "保瑞", "market": "tw", "currency": "TWD", "buyDate": "2026/06/11", "sellDate": "2026/06/12", "shares": 5, "buyPrice": 390, "sellPrice": 387, "buyCost": 1951, "sellAmt": 1929, "pnl": -22, "ret": -1.13}, {"name": "前鼎", "code": "前鼎", "market": "tw", "currency": "TWD", "buyDate": "2026/06/05", "sellDate": "2026/06/12", "shares": 22, "buyPrice": 223.5, "sellPrice": 199.5, "buyCost": 4919, "sellAmt": 4375, "pnl": -544, "ret": -11.06}, {"name": "Berkshire Hathaway", "code": "BRK/B", "market": "us", "currency": "USD", "buyDate": "", "sellDate": "2026/06/05", "shares": 1, "buyPrice": 430.08, "sellPrice": 479.63, "buyCost": 430.08, "sellAmt": 479.24, "pnl": 49.16, "ret": 11.43}, {"name": "Tesla Inc", "code": "TSLA", "market": "us", "currency": "USD", "buyDate": "", "sellDate": "2026/06/11", "shares": 1, "buyPrice": 423.34, "sellPrice": 388.0, "buyCost": 423.34, "sellAmt": 387.68, "pnl": -35.66, "ret": -8.42}, {"name": "Franklin FTSE South Korea ETF", "code": "FLKR", "market": "us", "currency": "USD", "buyDate": "", "sellDate": "2026/06/11", "shares": 1, "buyPrice": 71.32, "sellPrice": 63.0, "buyCost": 71.32, "sellAmt": 59.99, "pnl": -11.33, "ret": -15.89}, {"name": "路博邁台日雙星T", "code": "路博邁台日雙星T", "market": "fund", "currency": "TWD", "buyDate": "", "sellDate": "2026/06/11", "shares": 1, "buyPrice": 8000, "sellPrice": 8236, "buyCost": 8000, "sellAmt": 8236, "pnl": 236, "ret": 2.95}];
+  const seedData = PORTFOLIO_DATA.seedData;
   try {
     const saved = JSON.parse(localStorage.getItem('realized_trades') || '[]');
     // Keep US trades from localStorage, replace TW trades with seed
