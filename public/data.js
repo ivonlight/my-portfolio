@@ -1,7 +1,7 @@
 // Portfolio data - auto-updated by Claude
 // Last updated: 202606161200
 const PORTFOLIO_DATA = {
-  "version": "202606161206",
+  "version": "202606161227",
   "holdTW": [
     {
       "code": "0050",
