@@ -2829,12 +2829,12 @@ function renderRealized() {
     return html;
   }).join('');
 
-  renderPeriodTable('realizedWeek',  '本週', week,  sumPnl(week));
-  renderPeriodTable('realizedMonth', '本月', month, sumPnl(month));
-  renderPeriodTable('realizedYear',  '今年', year,  sumPnl(year));
+  renderPeriodTable('realizedWeek',  '本週', week,  sumPnl(week),  false);
+  renderPeriodTable('realizedMonth', '本月', month, sumPnl(month), true);
+  renderPeriodTable('realizedYear',  '今年', year,  sumPnl(year),  true);
 }
 
-function renderPeriodTable(id, label, trades, totalPnl) {
+function renderPeriodTable(id, label, trades, totalPnl, collapsed) {
   const el = document.getElementById(id);
   if (!trades.length) { el.innerHTML = ''; return; }
 
