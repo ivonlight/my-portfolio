@@ -2036,7 +2036,7 @@ const yahooSymbolMap = {
   '009816': '009816.TW',
   '00981A': '00981A.TWO',
   '00988A': '00988A.TWO',
-  '2454'  : '2454.TW',
+  '2454'  : '2454.TW','3260.TW','8086.TW',
   '3135'  : '3135.TW',
   '5292'  : '5292.TW',
   '8033'  : '8033.TW',
@@ -2154,7 +2154,7 @@ document.getElementById('updateTime').textContent = '載入中...';
 
 // ── VERSION CHECK — auto-clear stale localStorage ──
 (function versionCheck() {
-  const CURRENT_VERSION = '202606151458';
+  const CURRENT_VERSION = '202606170831';
   const stored = localStorage.getItem('app_version');
   if (stored !== CURRENT_VERSION) {
     // New version deployed — clear stale data so fresh seed loads
