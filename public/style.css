@@ -1,3 +1,4 @@
+
 :root {
   --bg: #08080e;
   --surface: #0f0f18;
@@ -506,6 +507,8 @@ main { padding:2rem 2.5rem; max-width:1440px; margin:0 auto; }
 
 /* ── REALIZED TABLE ── */
 .realized-period { margin-bottom: 2rem; }
+.realized-period details > summary { list-style: none; }
+.realized-period details > summary::-webkit-details-marker { display: none; }
 .realized-period-hd {
   display:flex; align-items:center; justify-content:space-between;
   padding:.6rem 1rem; background:var(--surface); border:1px solid var(--border);
