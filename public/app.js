@@ -1,6 +1,3 @@
-// app.js - Portfolio Dashboard
-// Auto-generated from index.html
-
 
 // ── 觀察清單（未持有，候選買進）──
 const watchlistUS = PORTFOLIO_DATA.watchlistUS;
@@ -1601,7 +1598,6 @@ document.addEventListener('click', e => {
 });
 
 
-// ── REALIZED P&L ──
 
 // ── REALIZED P&L ──
 let realizedTrades = [];
@@ -1795,14 +1791,26 @@ function renderRealized() {
     const fundWinCost   = fundWins.reduce((s,t)=>s+(t.buyCost||0),0);
     const fundLossCost  = fundLoss.reduce((s,t)=>s+(t.buyCost||0),0);
 
+    // Merge TW+US into 獲利出場 and 停損出場
+    const winTotal  = twWinTotal  + usWinTotal  * (getUSDTWD()||31.5);
+    const lossTotal = twLossTotal + usLossTotal * (getUSDTWD()||31.5);
+    const winCost   = twWinCost   + usWinCost   * (getUSDTWD()||31.5);
+    const lossCost  = twLossCost  + usLossCost  * (getUSDTWD()||31.5);
+    const winCnt    = twWins.length + usWins.length;
+    const lossCnt   = twLoss.length + usLoss.length;
+
     const allCards = [
-      { label:'🇹🇼 台股獲利出場', val:twWinTotal,   rate:rate(twWinTotal,twWinCost),     cnt:twWins.length,   isTW:true,  pos:true  },
-      { label:'🇹🇼 台股停損出場', val:twLossTotal,  rate:rate(twLossTotal,twLossCost),   cnt:twLoss.length,   isTW:true,  pos:false },
-      { label:'🇺🇸 美股獲利出場', val:usWinTotal,   rate:rate(usWinTotal,usWinCost),     cnt:usWins.length,   isTW:false, pos:true  },
-      { label:'🇺🇸 美股停損出場', val:usLossTotal,  rate:rate(usLossTotal,usLossCost),   cnt:usLoss.length,   isTW:false, pos:false },
+      { label:'✅ 獲利出場', val:winTotal,  rate:rate(winTotal,winCost),   cnt:winCnt,  isTW:true, pos:true,
+        sub: (twWinTotal ? '台股 +NT$'+Math.round(twWinTotal).toLocaleString('zh-TW') : '')
+           + (twWinTotal && usWinTotal ? '　' : '')
+           + (usWinTotal ? '美股 +$'+usWinTotal.toFixed(2) : '') },
+      { label:'🔴 停損出場', val:lossTotal, rate:rate(lossTotal,lossCost), cnt:lossCnt, isTW:true, pos:false,
+        sub: (twLossTotal ? '台股 -NT$'+Math.abs(Math.round(twLossTotal)).toLocaleString('zh-TW') : '')
+           + (twLossTotal && usLossTotal ? '　' : '')
+           + (usLossTotal ? '美股 -$'+Math.abs(usLossTotal).toFixed(2) : '') },
     ];
-    if (fundWins.length)  allCards.push({ label:'📈 基金獲利出場', val:fundWinTotal,  rate:rate(fundWinTotal,fundWinCost),   cnt:fundWins.length,  isTW:true, pos:true  });
-    if (fundLoss.length)  allCards.push({ label:'📈 基金停損出場', val:fundLossTotal, rate:rate(fundLossTotal,fundLossCost), cnt:fundLoss.length,  isTW:true, pos:false });
+    if (fundWins.length)  allCards.push({ label:'📈 基金獲利出場', val:fundWinTotal,  rate:rate(fundWinTotal,fundWinCost),   cnt:fundWins.length,  isTW:true, pos:true, sub:'' });
+    if (fundLoss.length)  allCards.push({ label:'📈 基金停損出場', val:fundLossTotal, rate:rate(fundLossTotal,fundLossCost), cnt:fundLoss.length,  isTW:true, pos:false, sub:'' });
 
     wlEl.innerHTML = allCards.map(item => {
       const fmtVal = item.isTW
@@ -1975,18 +1983,21 @@ function renderPeriodTable(id, label, trades, totalPnl, collapsed) {
     </td></tr>
     ${buildRows(usTr)}` : '';
 
+  const openAttr = collapsed ? '' : ' open';
   el.innerHTML = `
     <div class="realized-period">
-      <div class="realized-period-hd">
-        <h3>${label}（${trades.length} 筆）</h3>
-        <div class="period-total" style="font-size:.75rem;display:flex;flex-direction:column;align-items:flex-end;gap:.15rem">${headerParts.join('')}</div>
-      </div>
-      <div class="period-wrap">
-        <table class="r-tbl">
-          <thead><tr><th>股票</th><th>筆數</th><th></th><th></th><th>報酬率</th><th>損益</th></tr></thead>
-          <tbody>${twSection}${usSection}</tbody>
-        </table>
-      </div>
+      <details${openAttr}>
+        <summary class="realized-period-hd">
+          <h3>${label}（${trades.length} 筆）</h3>
+          <div class="period-total" style="font-size:.75rem;display:flex;flex-direction:column;align-items:flex-end;gap:.15rem">${headerParts.join('')}</div>
+        </summary>
+        <div class="period-wrap">
+          <table class="r-tbl">
+            <thead><tr><th>股票</th><th>筆數</th><th></th><th></th><th>報酬率</th><th>損益</th></tr></thead>
+            <tbody>${twSection}${usSection}</tbody>
+          </table>
+        </div>
+      </details>
     </div>`;
 }
 
@@ -2045,7 +2056,6 @@ function importBackup(e) {
 })();
 
 
-// ── MOBILE ──
 
 // ── MOBILE TAB SWITCH ──
 function switchMobileTab(tab, btn) {
@@ -2067,7 +2077,6 @@ function switchMobileTab(tab, btn) {
 }
 
 
-// ── CLAUDE BUBBLE ──
 
 // ── CLAUDE BUBBLE ──
 function buildPortfolioContext() {
